@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>KG Code — VS Code para iPhone</title>
+    <title>KG Code — VS Code para iPhone/Chrome</title>
     <meta name="theme-color" content="#1e1e1e">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -37,7 +37,7 @@
         #sidebar { width: 220px; background-color: #252526; border-right: 1px solid #1e1e1e; display: flex; flex-direction: column; transition: transform 0.2s ease; z-index: 10; }
         #sidebar.hidden { display: none; }
         .sidebar-title { padding: 10px; font-size: 11px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; color: #888; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #2d2d2d; }
-        .sidebar-icons { display: flex; gap: 8px; }
+        .sidebar-icons { display: flex; gap: 6px; }
         .file-list { flex: 1; overflow-y: auto; list-style: none; }
         .file-item { padding: 8px 12px; font-size: 13px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; border-left: 2px solid transparent; }
         .file-item.active { background-color: #37373d; border-left-color: #007acc; color: white; }
@@ -87,9 +87,10 @@
             <i class="fa-solid fa-code"></i> KG Code
         </div>
         <div class="actions">
-            <button class="btn btn-github" onclick="toggleModal('github-modal')"><i class="fa-brands fa-github"></i></button>
-            <button class="btn btn-secondary" onclick="openNewTab()"><i class="fa-solid fa-up-right-from-square"></i></button>
-            <button class="btn btn-success" onclick="runProject()"><i class="fa-solid fa-play"></i></button>
+            <button class="btn btn-secondary" onclick="formatCode()" title="Formatar Código"><i class="fa-solid fa-wand-magic-sparkles"></i></button>
+            <button class="btn btn-secondary" onclick="toggleModal('search-modal')" title="Localizar"><i class="fa-solid fa-magnifying-glass"></i></button>
+            <button class="btn btn-github" onclick="toggleModal('github-modal')" title="GitHub"><i class="fa-brands fa-github"></i></button>
+            <button class="btn btn-success" onclick="runProject()" title="Executar"><i class="fa-solid fa-play"></i></button>
         </div>
     </header>
 
@@ -101,7 +102,8 @@
                 <span>Explorador</span>
                 <div class="sidebar-icons">
                     <i class="fa-solid fa-file-circle-plus" onclick="addNewFile()" title="Novo Ficheiro" style="cursor:pointer"></i>
-                    <i class="fa-solid fa-folder-arrow-down" onclick="document.getElementById('file-input').click()" title="Importar Ficheiro/ZIP" style="cursor:pointer"></i>
+                    <i class="fa-solid fa-folder-arrow-down" onclick="document.getElementById('file-input').click()" title="Importar" style="cursor:pointer"></i>
+                    <i class="fa-solid fa-magnifying-glass" onclick="toggleModal('search-modal')" title="Localizar" style="cursor:pointer"></i>
                     <i class="fa-brands fa-github" onclick="toggleModal('github-modal')" title="GitHub" style="cursor:pointer"></i>
                     <i class="fa-solid fa-gear" onclick="toggleModal('settings-modal')" title="Configurações" style="cursor:pointer"></i>
                 </div>
@@ -142,7 +144,7 @@
                 <div class="panel-tab" onclick="switchPanel('console')">Console</div>
             </div>
             <div style="padding: 4px 10px;">
-                <button class="btn btn-secondary" style="padding: 2px 6px; font-size: 10px;" onclick="openNewTab()"><i class="fa-solid fa-expand"></i> Tela Cheia</button>
+                <button class="btn btn-secondary" style="padding: 2px 6px; font-size: 10px;" onclick="openNewTab()"><i class="fa-solid fa-expand"></i> Nova Aba</button>
             </div>
         </div>
         <div class="panel-content" id="panel-preview">
@@ -159,6 +161,21 @@
         <div id="file-type-badge">HTML</div>
     </div>
 
+    <!-- Modal de Localizar e Substituir -->
+    <div class="modal-overlay" id="search-modal">
+        <div class="modal-box">
+            <h3><i class="fa-solid fa-magnifying-glass"></i> Localizar e Substituir</h3>
+            <label>Localizar:</label>
+            <input type="text" id="find-text" placeholder="Texto a procurar...">
+            <label>Substituir por:</label>
+            <input type="text" id="replace-text" placeholder="Novo texto...">
+            <div style="display:flex; gap:8px; margin-top: 10px;">
+                <button class="btn" style="flex:1" onclick="performReplace()">Substituir Tudo</button>
+                <button class="btn btn-secondary" onclick="toggleModal('search-modal')">Fechar</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Modal do GitHub -->
     <div class="modal-overlay" id="github-modal">
         <div class="modal-box">
@@ -173,10 +190,9 @@
             <input type="text" id="github-repo" placeholder="ex: meu-projeto">
 
             <div style="display:flex; gap:8px; margin-top: 10px;">
-                <button class="btn" style="flex:1" onclick="githubPull()"><i class="fa-solid fa-cloud-arrow-down"></i> Baixar Repositório</button>
-                <button class="btn btn-success" style="flex:1" onclick="githubPush()"><i class="fa-solid fa-cloud-arrow-up"></i> Fazer Commit/Push</button>
+                <button class="btn" style="flex:1" onclick="githubPull()"><i class="fa-solid fa-cloud-arrow-down"></i> Baixar Repo</button>
+                <button class="btn btn-success" style="flex:1" onclick="githubPush()"><i class="fa-solid fa-cloud-arrow-up"></i> Fazer Push</button>
             </div>
-            
             <div style="text-align: right; margin-top: 15px;">
                 <button class="btn btn-secondary" onclick="toggleModal('github-modal')">Fechar</button>
             </div>
@@ -211,16 +227,16 @@
         <button onclick="toggleSidebar()"><i class="fa-solid fa-bars"></i></button>
         <button onclick="switchPanel('preview')"><i class="fa-solid fa-desktop"></i></button>
         <button onclick="switchPanel('console')"><i class="fa-solid fa-terminal"></i></button>
-        <button onclick="toggleModal('github-modal')"><i class="fa-brands fa-github"></i></button>
+        <button onclick="toggleModal('search-modal')"><i class="fa-solid fa-magnifying-glass"></i></button>
         <button onclick="exportProject()"><i class="fa-solid fa-file-export"></i></button>
     </nav>
 
     <script>
         let files = JSON.parse(localStorage.getItem('kgcode_files')) || {
-            'index.html': { name: 'index.html', language: 'htmlmixed', content: '<!DOCTYPE html>\n<html>\n<head>\n  <link rel="stylesheet" href="style.css">\n</head>\n<body>\n  <h1>KG Code + GitHub no iPhone!</h1>\n  <button onclick="saudacao()">Testar JS</button>\n  <script src="script.js"><\/script>\n</body>\n</html>' },
+            'index.html': { name: 'index.html', language: 'htmlmixed', content: '<!DOCTYPE html>\n<html>\n<head>\n  <link rel="stylesheet" href="style.css">\n</head>\n<body>\n  <h1>KG Code no Chrome!</h1>\n  <button onclick="saudacao()">Testar JS</button>\n  <script src="script.js"><\/script>\n</body>\n</html>' },
             'style.css': { name: 'style.css', language: 'css', content: 'body {\n  background-color: #121212;\n  color: #007acc;\n  font-family: sans-serif;\n  text-align: center;\n  padding-top: 40px;\n}\nbutton {\n  padding: 10px 20px;\n  background: #007acc;\n  color: white;\n  border: none;\n  border-radius: 5px;\n}' },
-            'script.js': { name: 'script.js', language: 'javascript', content: 'function saudacao() {\n  alert("Conectado com sucesso!");\n  console.log("Executado no Safari do iPhone.");\n}' },
-            'main.py': { name: 'main.py', language: 'python', content: 'print("Executando Python no iPhone!")\nfor i in range(3):\n    print(f"Linha {i+1}")' }
+            'script.js': { name: 'script.js', language: 'javascript', content: 'function saudacao() {\n  alert("Tudo a funcionar no Chrome!");\n  console.log("Executado com sucesso.");\n}' },
+            'main.py': { name: 'main.py', language: 'python', content: 'print("Python a correr via WebAssembly!")\nfor i in range(3):\n    print(f"Passo {i+1}")' }
         };
 
         let currentFile = 'index.html';
@@ -251,7 +267,6 @@
                 document.getElementById('cursor-pos').innerText = `Lin ${pos.line + 1}, Col ${pos.ch + 1}`;
             });
 
-            // Carregar dados salvos do GitHub
             document.getElementById('github-token').value = localStorage.getItem('kgcode_gh_token') || '';
             document.getElementById('github-user').value = localStorage.getItem('kgcode_gh_user') || '';
             document.getElementById('github-repo').value = localStorage.getItem('kgcode_gh_repo') || '';
@@ -360,7 +375,25 @@
             modal.style.display = modal.style.display === 'flex' ? 'none' : 'flex';
         }
 
-        // INTEGRACAO GITHUB VIA REST API
+        function formatCode() {
+            const totalLines = editor.lineCount();
+            for (let i = 0; i < totalLines; i++) {
+                editor.indentLine(i);
+            }
+            alert("Código formatado/re-indented!");
+        }
+
+        function performReplace() {
+            const findStr = document.getElementById('find-text').value;
+            const replaceStr = document.getElementById('replace-text').value;
+            if (!findStr) return;
+            let content = editor.getValue();
+            let newContent = content.replaceAll(findStr, replaceStr);
+            editor.setValue(newContent);
+            toggleModal('search-modal');
+            alert("Substituição concluída!");
+        }
+
         async function githubPush() {
             const token = document.getElementById('github-token').value.trim();
             const user = document.getElementById('github-user').value.trim();
@@ -375,7 +408,7 @@
             localStorage.setItem('kgcode_gh_user', user);
             localStorage.setItem('kgcode_gh_repo', repo);
 
-            const commitMsg = prompt("Mensagem do Commit:", "Atualização pelo KG Code iPhone");
+            const commitMsg = prompt("Mensagem do Commit:", "Atualização pelo KG Code");
             if (!commitMsg) return;
 
             alert("A enviar ficheiros para o GitHub...");
@@ -385,7 +418,6 @@
                     const content = files[fileName].content;
                     const url = `https://api.github.com/repos/${user}/${repo}/contents/${fileName}`;
                     
-                    // Obter sha do ficheiro se já existir
                     let sha = "";
                     const checkRes = await fetch(url, {
                         headers: { "Authorization": `token ${token}` }
@@ -395,7 +427,6 @@
                         sha = data.sha;
                     }
 
-                    // Enviar ficheiro atualizado
                     const res = await fetch(url, {
                         method: "PUT",
                         headers: {
@@ -404,14 +435,14 @@
                         },
                         body: JSON.stringify({
                             message: commitMsg,
-                            content: btoa(unescape(encodeURIComponent(content))), // Base64 encoding
+                            content: btoa(unescape(encodeURIComponent(content))),
                             sha: sha || undefined
                         })
                     });
 
                     if (!res.ok) throw new Error(`Erro ao enviar ${fileName}`);
                 }
-                alert("Commit realizado com sucesso no GitHub!");
+                alert("Commit realizado com sucesso!");
                 toggleModal('github-modal');
             } catch (err) {
                 alert("Falha no commit: " + err.message);
