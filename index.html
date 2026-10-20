@@ -24,8 +24,8 @@
         body { background-color: #181818; color: #cccccc; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
         header { background-color: #323233; height: 45px; display: flex; align-items: center; justify-content: space-between; padding: 0 10px; border-bottom: 1px solid #252526; }
         .logo { font-weight: bold; color: #007acc; display: flex; align-items: center; gap: 8px; font-size: 16px; }
-        .actions { display: flex; gap: 8px; }
-        .btn { background: #0e639c; color: white; border: none; padding: 6px 12px; border-radius: 4px; font-size: 13px; font-weight: 500; display: flex; align-items: center; gap: 5px; cursor: pointer; }
+        .actions { display: flex; gap: 6px; }
+        .btn { background: #0e639c; color: white; border: none; padding: 6px 10px; border-radius: 4px; font-size: 12px; font-weight: 500; display: flex; align-items: center; gap: 5px; cursor: pointer; }
         .btn:active { opacity: 0.8; }
         .btn-secondary { background: #3c3c3c; }
         .btn-success { background: #238636; }
@@ -36,6 +36,7 @@
         #sidebar { width: 220px; background-color: #252526; border-right: 1px solid #1e1e1e; display: flex; flex-direction: column; transition: transform 0.2s ease; z-index: 10; }
         #sidebar.hidden { display: none; }
         .sidebar-title { padding: 10px; font-size: 11px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; color: #888; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #2d2d2d; }
+        .sidebar-icons { display: flex; gap: 8px; }
         .file-list { flex: 1; overflow-y: auto; list-style: none; }
         .file-item { padding: 8px 12px; font-size: 13px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; border-left: 2px solid transparent; }
         .file-item.active { background-color: #37373d; border-left-color: #007acc; color: white; }
@@ -47,7 +48,6 @@
         .tabs-header { display: flex; background-color: #252526; overflow-x: auto; border-bottom: 1px solid #1e1e1e; }
         .tab { padding: 8px 16px; font-size: 12px; background: #2d2d2d; color: #969696; border-right: 1px solid #252526; display: flex; align-items: center; gap: 8px; cursor: pointer; white-space: nowrap; }
         .tab.active { background: #1e1e1e; color: #ffffff; border-top: 2px solid #007acc; }
-        .tab .close-tab { font-size: 10px; border-radius: 50%; padding: 2px; }
         
         /* CodeMirror Custom Fixes for iOS */
         .CodeMirror { height: 100% !important; font-family: 'Courier New', Courier, monospace; font-size: 14px; }
@@ -62,9 +62,16 @@
         #preview-frame { width: 100%; height: 100%; border: none; background: white; }
         #console-log { padding: 10px; font-family: monospace; font-size: 12px; color: #4ec9b0; white-space: pre-wrap; }
         
-        /* Menu Inferior Mobile */
+        /* Modal de Configurações */
+        #settings-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 100; justify-content: center; align-items: center; }
+        .modal-box { background: #252526; padding: 20px; border-radius: 6px; width: 90%; max-width: 380px; border: 1px solid #333; color: #ccc; }
+        .modal-box h3 { margin-bottom: 15px; font-size: 15px; color: #fff; display: flex; align-items: center; gap: 8px; }
+        .modal-box label { font-size: 12px; display: block; margin-bottom: 5px; color: #aaa; }
+        .modal-box select { width: 100%; padding: 8px; background: #3c3c3c; color: #fff; border: 1px solid #555; border-radius: 4px; margin-bottom: 15px; font-size: 13px; }
+
+        /* Navegação Mobile */
         nav { height: 40px; background: #007acc; display: flex; justify-content: space-around; align-items: center; }
-        nav button { background: none; border: none; color: white; font-size: 16px; width: 100%; height: 100%; }
+        nav button { background: none; border: none; color: white; font-size: 16px; width: 100%; height: 100%; cursor: pointer; }
         nav button:active { background: rgba(255, 255, 255, 0.2); }
     </style>
 </head>
@@ -75,17 +82,25 @@
             <i class="fa-solid fa-code"></i> KG Code
         </div>
         <div class="actions">
-            <button class="btn btn-secondary" onclick="addNewFile()"><i class="fa-solid fa-file-circle-plus"></i> Novo</button>
-            <button class="btn btn-success" onclick="runProject()"><i class="fa-solid fa-play"></i> Executar</button>
+            <button class="btn btn-secondary" onclick="document.getElementById('file-input').click()"><i class="fa-solid fa-file-import"></i></button>
+            <button class="btn btn-secondary" onclick="addNewFile()"><i class="fa-solid fa-file-circle-plus"></i></button>
+            <button class="btn btn-success" onclick="runProject()"><i class="fa-solid fa-play"></i></button>
         </div>
     </header>
+
+    <!-- Input invisível para importar ficheiros ou ZIP -->
+    <input type="file" id="file-input" style="display:none" multiple accept=".zip,.html,.css,.js,.py,.json,.md" onchange="handleFileImport(event)">
 
     <main>
         <!-- Sidebar -->
         <div id="sidebar">
             <div class="sidebar-title">
                 <span>Explorador</span>
-                <i class="fa-solid fa-folder-plus" onclick="addNewFile()" style="cursor:pointer"></i>
+                <div class="sidebar-icons">
+                    <i class="fa-solid fa-file-circle-plus" onclick="addNewFile()" title="Novo Ficheiro" style="cursor:pointer"></i>
+                    <i class="fa-solid fa-folder-arrow-down" onclick="document.getElementById('file-input').click()" title="Importar Ficheiro/ZIP" style="cursor:pointer"></i>
+                    <i class="fa-solid fa-gear" onclick="toggleSettingsModal()" title="Configurações" style="cursor:pointer"></i>
+                </div>
             </div>
             <ul class="file-list" id="file-list"></ul>
         </div>
@@ -113,6 +128,30 @@
         </div>
     </div>
 
+    <!-- Modal de Configurações -->
+    <div id="settings-modal">
+        <div class="modal-box">
+            <h3><i class="fa-solid fa-gear" style="color: #007acc;"></i> Configurações do KG Code</h3>
+            <label>Tamanho da Fonte:</label>
+            <select id="setting-fontsize" onchange="changeFontSize()">
+                <option value="12px">12px</option>
+                <option value="14px" selected>14px (Padrão)</option>
+                <option value="16px">16px</option>
+                <option value="18px">18px</option>
+            </select>
+
+            <label>Quebra de Linha (Word Wrap):</label>
+            <select id="setting-wrap" onchange="changeWordWrap()">
+                <option value="false">Desligado</option>
+                <option value="true">Ligado</option>
+            </select>
+
+            <div style="text-align: right; margin-top: 10px;">
+                <button class="btn" onclick="toggleSettingsModal()">Salvar e Fechar</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Navegação Mobile -->
     <nav>
         <button onclick="toggleSidebar()"><i class="fa-solid fa-bars"></i></button>
@@ -122,24 +161,23 @@
     </nav>
 
     <script>
-        // Sistema de Ficheiros Padrão
         let files = JSON.parse(localStorage.getItem('kgcode_files')) || {
-            'index.html': { name: 'index.html', language: 'htmlmixed', content: '<!DOCTYPE html>\n<html>\n<head>\n  <link rel="stylesheet" href="style.css">\n</head>\n<body>\n  <h1>Olá do KG Code!</h1>\n  <button onclick="saudacao()">Clique Aqui</button>\n  <script src="script.js"><\/script>\n</body>\n</html>' },
-            'style.css': { name: 'style.css', language: 'css', content: 'body {\n  background-color: #121212;\n  color: #007acc;\n  font-family: sans-serif;\n  text-align: center;\n  padding-top: 50px;\n}\nbutton {\n  padding: 10px 20px;\n  background: #007acc;\n  color: white;\n  border: none;\n  border-radius: 5px;\n  font-size: 16px;\n}' },
-            'script.js': { name: 'script.js', language: 'javascript', content: 'function saudacao() {\n  alert("Funcionando no iPhone!");\n  console.log("Botão acionado com sucesso.");\n}' }
+            'index.html': { name: 'index.html', language: 'htmlmixed', content: '<!DOCTYPE html>\n<html>\n<head>\n  <link rel="stylesheet" href="style.css">\n</head>\n<body>\n  <h1>KG Code no iPhone!</h1>\n  <button onclick="saudacao()">Testar JS</button>\n  <script src="script.js"><\/script>\n</body>\n</html>' },
+            'style.css': { name: 'style.css', language: 'css', content: 'body {\n  background-color: #121212;\n  color: #007acc;\n  font-family: sans-serif;\n  text-align: center;\n  padding-top: 40px;\n}\nbutton {\n  padding: 10px 20px;\n  background: #007acc;\n  color: white;\n  border: none;\n  border-radius: 5px;\n}' },
+            'script.js': { name: 'script.js', language: 'javascript', content: 'function saudacao() {\n  alert("Tudo funcionando perfeitamente!");\n  console.log("Executado com sucesso no Safari iOS.");\n}' }
         };
 
         let currentFile = 'index.html';
         let editor;
 
-        // Inicializar o Editor CodeMirror
         window.onload = function() {
             editor = CodeMirror.fromTextArea(document.getElementById("code-editor"), {
                 lineNumbers: true,
                 theme: "dracula",
                 mode: "htmlmixed",
                 viewportMargin: Infinity,
-                inputStyle: "contenteditable" // Otimizado para Safari iOS
+                inputStyle: "contenteditable",
+                lineWrapping: false
             });
 
             editor.on("change", function() {
@@ -148,6 +186,14 @@
                     saveLocal();
                 }
             });
+
+            // Carregar configurações salvas
+            const savedSize = localStorage.getItem('kgcode_fontsize') || '14px';
+            const savedWrap = localStorage.getItem('kgcode_wrap') === 'true';
+            document.getElementById('setting-fontsize').value = savedSize;
+            document.getElementById('setting-wrap').value = savedWrap;
+            changeFontSize(savedSize);
+            changeWordWrap(savedWrap);
 
             renderFileList();
             openFile(currentFile);
@@ -170,9 +216,10 @@
                 if(fileName.endsWith('.html')) icon = 'fa-html5';
                 if(fileName.endsWith('.css')) icon = 'fa-css3-alt';
                 if(fileName.endsWith('.js')) icon = 'fa-js';
+                if(fileName.endsWith('.py')) icon = 'fa-brands fa-python';
 
                 li.innerHTML = `
-                    <span><i class="fa-brands ${icon}"></i> ${fileName}</span>
+                    <span><i class="${icon}"></i> ${fileName}</span>
                     <span class="file-actions">
                         <i class="fa-solid fa-trash" onclick="deleteFile(event, '${fileName}')"></i>
                     </span>
@@ -204,7 +251,7 @@
         }
 
         function addNewFile() {
-            const name = prompt("Nome do Ficheiro (ex: app.js, index.html, style.css):");
+            const name = prompt("Nome do Ficheiro (ex: index.html, style.css, script.js, main.py):");
             if (!name) return;
 
             let lang = 'htmlmixed';
@@ -231,8 +278,7 @@
         }
 
         function toggleSidebar() {
-            const sb = document.getElementById('sidebar');
-            sb.classList.toggle('hidden');
+            document.getElementById('sidebar').classList.toggle('hidden');
         }
 
         function switchPanel(panelName) {
@@ -242,22 +288,84 @@
             event.target.classList.add('active');
         }
 
+        function toggleSettingsModal() {
+            const modal = document.getElementById('settings-modal');
+            modal.style.display = modal.style.display === 'flex' ? 'none' : 'flex';
+        }
+
+        function changeFontSize(sizeInput) {
+            const size = sizeInput || document.getElementById('setting-fontsize').value;
+            document.querySelector('.CodeMirror').style.fontSize = size;
+            localStorage.setItem('kgcode_fontsize', size);
+            editor.refresh();
+        }
+
+        function changeWordWrap(wrapInput) {
+            const wrap = wrapInput !== undefined ? wrapInput : (document.getElementById('setting-wrap').value === 'true');
+            editor.setOption("lineWrapping", wrap);
+            localStorage.setItem('kgcode_wrap', wrap);
+        }
+
+        // Importar Ficheiros Individuais ou Projetos ZIP
+        function handleFileImport(event) {
+            const uploadedFiles = event.target.files;
+            if (!uploadedFiles.length) return;
+
+            Array.from(uploadedFiles).forEach(file => {
+                if (file.name.endsWith('.zip')) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        JSZip.loadAsync(e.target.result).then(function(zip) {
+                            zip.forEach(function (relativePath, zipEntry) {
+                                if (!zipEntry.dir) {
+                                    zipEntry.async("string").then(function(content) {
+                                        let lang = 'htmlmixed';
+                                        if (relativePath.endsWith('.css')) lang = 'css';
+                                        if (relativePath.endsWith('.js')) lang = 'javascript';
+                                        if (relativePath.endsWith('.py')) lang = 'python';
+                                        
+                                        files[relativePath] = { name: relativePath, language: lang, content: content };
+                                        saveLocal();
+                                        renderFileList();
+                                    });
+                                }
+                            });
+                            alert("Projeto ZIP importado com sucesso!");
+                        });
+                    };
+                    reader.readAsArrayBuffer(file);
+                } else {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        let name = file.name;
+                        let lang = 'htmlmixed';
+                        if (name.endsWith('.css')) lang = 'css';
+                        if (name.endsWith('.js')) lang = 'javascript';
+                        if (name.endsWith('.py')) lang = 'python';
+
+                        files[name] = { name: name, language: lang, content: e.target.result };
+                        saveLocal();
+                        renderFileList();
+                        openFile(name);
+                    };
+                    reader.readAsText(file);
+                }
+            });
+            event.target.value = ''; // Limpar input
+        }
+
         function runProject() {
             switchPanel('preview');
             const iframe = document.getElementById('preview-frame');
-            
             let htmlContent = files['index.html'] ? files['index.html'].content : '';
             
-            // Injetar CSS inline se existir style.css
             if (files['style.css']) {
                 htmlContent = htmlContent.replace('</head>', `<style>${files['style.css'].content}</style></head>`);
             }
 
-            // Capturar logs do console do iframe
             const consoleInterceptor = `
                 <script>
                     const _log = console.log;
-                    const _error = console.error;
                     console.log = function(...args) {
                         window.parent.postMessage({type: 'log', data: args.join(' ')}, '*');
                         _log.apply(console, args);
@@ -269,7 +377,6 @@
             `;
             htmlContent = htmlContent.replace('<head>', '<head>' + consoleInterceptor);
 
-            // Injetar JS inline se existir script.js
             if (files['script.js']) {
                 htmlContent = htmlContent.replace('</body>', `<script>${files['script.js'].content}<\/script></body>`);
             }
@@ -277,7 +384,6 @@
             iframe.srcdoc = htmlContent;
         }
 
-        // Ouvir logs vindos da pré-visualização
         window.addEventListener('message', function(e) {
             if (e.data && e.data.type) {
                 const logBox = document.getElementById('console-log');
