@@ -1,0 +1,836 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>KG Code - VS Code para iPhone</title>
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        vscode: {
+                            bg: '#1e1e1e',
+                            sidebar: '#252526',
+                            activity: '#333333',
+                            border: '#3f3f46',
+                            hover: '#2a2d2e',
+                            active: '#37373d',
+                            text: '#d4d4d4',
+                            accent: '#007acc',
+                            accentHover: '#0098ff',
+                            input: '#3c3c3c'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- FontAwesome para Ícones -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- CodeMirror 5 para Editor de Código Otimizado para Mobile -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/vscode-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/htmlmixed/htmlmixed.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/xml/xml.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/javascript/javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/css/css.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/markdown/markdown.min.js"></script>
+    
+    <!-- JSZip para exportação e importação de projetos -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+    <style>
+        /* Ajustes para iPhone e PWA */
+        body {
+            background-color: #1e1e1e;
+            color: #d4d4d4;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            overflow: hidden;
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            padding-top: env(safe-area-inset-top);
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+        .CodeMirror {
+            height: 100% !important;
+            font-family: 'SF Mono', Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+            font-size: 13px;
+            background-color: #1e1e1e !important;
+            color: #d4d4d4 !important;
+        }
+        .CodeMirror-gutters {
+            background-color: #1e1e1e !important;
+            border-right: 1px solid #333333 !important;
+        }
+        /* Scrollbar customizada para Mobile */
+        ::-webkit-scrollbar {
+            width: 5px;
+            height: 5px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1e1e1e;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #424242;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #4f4f4f;
+        }
+    </style>
+</head>
+<body class="flex flex-col h-screen w-screen select-none">
+
+    <!-- Top Activity / Title Bar -->
+    <header class="bg-[#333333] border-b border-[#3f3f46] h-11 flex items-center justify-between px-3 text-xs shrink-0 z-20">
+        <div class="flex items-center space-x-2">
+            <button id="toggle-sidebar" class="text-zinc-400 hover:text-white p-2 rounded active:bg-[#424242]">
+                <i class="fa-solid fa-bars text-sm"></i>
+            </button>
+            <div class="flex items-center space-x-1.5 font-semibold text-zinc-200">
+                <span class="text-blue-400"><i class="fa-solid fa-code"></i></span>
+                <span class="tracking-wide">KG CODE</span>
+                <span class="text-[10px] bg-blue-600 text-white px-1.5 py-0.5 rounded-full ml-1">iOS</span>
+            </div>
+        </div>
+
+        <div class="hidden md:flex items-center space-x-2 text-zinc-400 bg-[#252526] px-3 py-1 rounded border border-[#3f3f46] max-w-xs w-full justify-center">
+            <i class="fa-solid fa-magnifying-glass text-[10px]"></i>
+            <span id="project-title-display">MeuProjetoWeb</span>
+        </div>
+
+        <!-- Ações Rápidas de Topo -->
+        <div class="flex items-center space-x-1">
+            <button onclick="app.runProject()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1 rounded font-medium flex items-center space-x-1 shadow-sm active:scale-95 transition">
+                <i class="fa-solid fa-play text-[10px]"></i>
+                <span class="hidden sm:inline">Executar</span>
+            </button>
+            <button onclick="app.exportZip()" class="text-zinc-300 hover:text-white p-2 rounded hover:bg-[#424242]" title="Exportar ZIP">
+                <i class="fa-solid fa-download"></i>
+            </button>
+            <button onclick="app.openSettingsModal()" class="text-zinc-300 hover:text-white p-2 rounded hover:bg-[#424242]" title="Configurações">
+                <i class="fa-solid fa-gear"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Workspace -->
+    <div class="flex flex-1 overflow-hidden relative">
+
+        <!-- Activity Bar (Esquerda Extrema) -->
+        <nav class="w-12 bg-[#333333] border-r border-[#3f3f46] flex flex-col items-center py-2 shrink-0 justify-between">
+            <div class="flex flex-col space-y-1 w-full items-center">
+                <button onclick="app.switchSidebarTab('explorer')" id="btn-tab-explorer" class="w-10 h-10 flex items-center justify-center text-white border-l-2 border-blue-400 hover:bg-[#3f3f46]" title="Explorador">
+                    <i class="fa-regular fa-folder-open text-base"></i>
+                </button>
+                <button onclick="app.switchSidebarTab('search')" id="btn-tab-search" class="w-10 h-10 flex items-center justify-center text-zinc-400 border-l-2 border-transparent hover:text-white hover:bg-[#3f3f46]" title="Pesquisa">
+                    <i class="fa-solid fa-magnifying-glass text-base"></i>
+                </button>
+                <button onclick="app.switchSidebarTab('extensions')" id="btn-tab-extensions" class="w-10 h-10 flex items-center justify-center text-zinc-400 border-l-2 border-transparent hover:text-white hover:bg-[#3f3f46]" title="Extensões / Info">
+                    <i class="fa-solid fa-puzzle-piece text-base"></i>
+                </button>
+            </div>
+            <div class="flex flex-col space-y-1 w-full items-center pb-2">
+                <button onclick="app.openSettingsModal()" class="w-10 h-10 flex items-center justify-center text-zinc-400 hover:text-white hover:bg-[#3f3f46]">
+                    <i class="fa-solid fa-gear text-base"></i>
+                </button>
+            </div>
+        </nav>
+
+        <!-- Sidebar (Explorador de Arquivos / Pesquisa) -->
+        <aside id="sidebar" class="w-64 bg-[#252526] border-r border-[#3f3f46] flex flex-col shrink-0 transition-all duration-200 z-10">
+            <!-- Sidebar Header -->
+            <div class="h-9 px-3 flex items-center justify-between text-xs font-semibold text-zinc-400 uppercase tracking-wider border-b border-[#3f3f46]">
+                <span id="sidebar-title">Explorador</span>
+                <div class="flex items-center space-x-1">
+                    <button onclick="app.createNewFileDialog()" class="p-1 hover:bg-[#333333] rounded text-zinc-300" title="Novo Arquivo">
+                        <i class="fa-solid fa-file-circle-plus"></i>
+                    </button>
+                    <button onclick="app.createNewFolderDialog()" class="p-1 hover:bg-[#333333] rounded text-zinc-300" title="Nova Pasta">
+                        <i class="fa-solid fa-folder-plus"></i>
+                    </button>
+                    <button onclick="app.triggerImportZip()" class="p-1 hover:bg-[#333333] rounded text-zinc-300" title="Importar ZIP">
+                        <i class="fa-solid fa-file-zipper"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Sidebar Content -->
+            <div id="sidebar-content" class="flex-1 overflow-y-auto p-2 text-xs">
+                <!-- Árvore de Arquivos gerada dinamicamente -->
+            </div>
+
+            <!-- Hidden file input for zip import -->
+            <input type="file" id="zip-file-input" accept=".zip" class="hidden" onchange="app.handleZipImport(event)">
+        </aside>
+
+        <!-- Editor & Output Area -->
+        <main class="flex-1 flex flex-col overflow-hidden bg-[#1e1e1e]">
+            <!-- Tabs Bar -->
+            <div id="tabs-bar" class="bg-[#2d2d2d] h-9 flex items-center overflow-x-auto border-b border-[#3f3f46] shrink-0">
+                <!-- Abas geradas dinamicamente -->
+            </div>
+
+            <!-- Editor Core Container -->
+            <div class="flex-1 relative overflow-hidden">
+                <textarea id="code-editor-textarea"></textarea>
+            </div>
+
+            <!-- Bottom Panel (Console, Preview, Terminal) -->
+            <div id="bottom-panel" class="h-48 bg-[#1e1e1e] border-t border-[#3f3f46] flex flex-col shrink-0 transition-all duration-200">
+                <!-- Panel Header / Tabs -->
+                <div class="bg-[#252526] h-8 flex items-center justify-between px-3 border-b border-[#3f3f46] text-xs">
+                    <div class="flex space-x-4">
+                        <button onclick="app.switchBottomTab('preview')" id="btn-b-preview" class="text-zinc-200 font-medium pb-1 border-b-2 border-blue-400">Pré-visualização</button>
+                        <button onclick="app.switchBottomTab('console')" id="btn-b-console" class="text-zinc-400 hover:text-zinc-200 pb-1 border-b-2 border-transparent">Console</button>
+                        <button onclick="app.switchBottomTab('terminal')" id="btn-b-terminal" class="text-zinc-400 hover:text-zinc-200 pb-1 border-b-2 border-transparent">Terminal</button>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <button onclick="app.runProject()" class="text-zinc-400 hover:text-white px-1.5 py-0.5 rounded" title="Recarregar Prévia">
+                            <i class="fa-solid fa-rotate-right"></i>
+                        </button>
+                        <button onclick="app.toggleBottomPanel()" class="text-zinc-400 hover:text-white px-1.5 py-0.5 rounded" title="Minimizar/Maximizar">
+                            <i class="fa-solid fa-chevron-down" id="bottom-panel-icon"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Panel Body -->
+                <div class="flex-1 relative overflow-hidden bg-white">
+                    <!-- Preview Tab Content -->
+                    <div id="panel-preview" class="absolute inset-0 flex flex-col">
+                        <iframe id="preview-iframe" class="w-full h-full border-0 bg-white"></iframe>
+                    </div>
+
+                    <!-- Console Tab Content -->
+                    <div id="panel-console" class="absolute inset-0 bg-[#1e1e1e] text-zinc-300 font-mono text-xs p-3 overflow-y-auto hidden">
+                        <div class="text-zinc-500 mb-1">// KG Code Console & Output (Safari mobile compliant)</div>
+                        <div id="console-logs"></div>
+                    </div>
+
+                    <!-- Terminal Tab Content -->
+                    <div id="panel-terminal" class="absolute inset-0 bg-[#1e1e1e] text-emerald-400 font-mono text-xs p-3 overflow-y-auto hidden flex flex-col justify-between">
+                        <div id="terminal-output" class="space-y-1 mb-2">
+                            <div>KG Code Terminal v1.0.0 (iOS Web Sandbox)</div>
+                            <div>Digite <span class="text-yellow-400">help</span> para ver os comandos disponíveis.</div>
+                            <div class="text-zinc-500">--------------------------------------------------</div>
+                        </div>
+                        <div class="flex items-center space-x-2 border-t border-[#3f3f46] pt-2">
+                            <span class="text-blue-400">kgcode@iphone:~$</span>
+                            <input type="text" id="terminal-input" class="bg-transparent flex-1 text-zinc-100 outline-none font-mono text-xs" placeholder="digite um comando..." onkeydown="app.handleTerminalInput(event)">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Mobile Quick Action Floating Toolbar (iPhone specific) -->
+    <div class="md:hidden bg-[#252526] border-t border-[#3f3f46] h-12 flex items-center justify-around px-2 shrink-0 z-30">
+        <button onclick="app.runProject()" class="flex flex-col items-center text-emerald-400 text-[10px]">
+            <i class="fa-solid fa-play text-base"></i>
+            <span>Executar</span>
+        </button>
+        <button onclick="app.createNewFileDialog()" class="flex flex-col items-center text-zinc-300 text-[10px]">
+            <i class="fa-solid fa-file-circle-plus text-base"></i>
+            <span>Novo Arq</span>
+        </button>
+        <button onclick="app.toggleSidebarMobile()" class="flex flex-col items-center text-zinc-300 text-[10px]">
+            <i class="fa-solid fa-folder-tree text-base"></i>
+            <span>Arquivos</span>
+        </button>
+        <button onclick="app.toggleBottomPanelMobile()" class="flex flex-col items-center text-zinc-300 text-[10px]">
+            <i class="fa-solid fa-terminal text-base"></i>
+            <span>Console</span>
+        </button>
+        <button onclick="app.openSettingsModal()" class="flex flex-col items-center text-zinc-300 text-[10px]">
+            <i class="fa-solid fa-gear text-base"></i>
+            <span>Ajustes</span>
+        </button>
+    </div>
+
+    <!-- Custom Modal Dialog (Substitui alert/prompt nativos do Safari para melhor UX) -->
+    <div id="custom-modal" class="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-[#252526] border border-[#3f3f46] rounded-lg max-w-sm w-full p-4 shadow-2xl text-zinc-200">
+            <h3 id="modal-title" class="font-semibold text-sm mb-2 text-white">Título</h3>
+            <p id="modal-desc" class="text-xs text-zinc-400 mb-4">Descrição</p>
+            <div id="modal-input-container" class="mb-4 hidden">
+                <input type="text" id="modal-input" class="w-full bg-[#1e1e1e] border border-[#3f3f46] rounded px-3 py-2 text-xs text-white outline-none focus:border-blue-500">
+            </div>
+            <div class="flex justify-end space-x-2">
+                <button id="modal-btn-cancel" onclick="app.closeModal()" class="px-3 py-1.5 rounded text-xs bg-[#333333] hover:bg-[#3f3f46] text-zinc-300">Cancelar</button>
+                <button id="modal-btn-confirm" class="px-3 py-1.5 rounded text-xs bg-blue-600 hover:bg-blue-500 text-white font-medium">Confirmar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-[#252526] border border-[#3f3f46] rounded-lg max-w-md w-full p-5 shadow-2xl text-zinc-200">
+            <div class="flex justify-between items-center mb-4 border-b border-[#3f3f46] pb-2">
+                <h3 class="font-semibold text-sm text-white"><i class="fa-solid fa-gear mr-2 text-blue-400"></i>Configurações do KG Code</h3>
+                <button onclick="app.closeSettingsModal()" class="text-zinc-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="space-y-4 text-xs">
+                <div>
+                    <label class="block text-zinc-400 mb-1">Tamanho da Fonte do Editor</label>
+                    <select id="setting-font-size" onchange="app.updateSettings()" class="w-full bg-[#1e1e1e] border border-[#3f3f46] rounded p-2 text-white">
+                        <option value="12px">12px (Compacto)</option>
+                        <option value="13px" selected>13px (Padrão)</option>
+                        <option value="14px">14px (Médio)</option>
+                        <option value="16px">16px (Grande)</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-zinc-400 mb-1">Modo de Salvamento</label>
+                    <div class="flex items-center space-x-2">
+                        <input type="checkbox" id="setting-autosave" checked class="rounded bg-[#1e1e1e] border-[#3f3f46] text-blue-600">
+                        <span>Salvar automaticamente no IndexedDB ao digitar</span>
+                    </div>
+                </div>
+                <div class="pt-2 border-t border-[#3f3f46]">
+                    <h4 class="font-semibold text-zinc-300 mb-1">Sobre o KG Code iOS</h4>
+                    <p class="text-zinc-400 leading-relaxed">
+                        Desenvolvido especialmente para programar direto no Safari do iPhone sem precisar de computador. Suporta HTML, CSS, JS, Python e projetos Web completos.
+                    </p>
+                </div>
+            </div>
+            <div class="mt-6 flex justify-end">
+                <button onclick="app.closeSettingsModal()" class="px-4 py-2 rounded bg-blue-600 hover:bg-blue-500 text-white font-medium text-xs">Fechar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Application JavaScript Logic -->
+    <script>
+        // IndexedDB Storage Wrapper para persistência robusta no iPhone
+        class IndexedDBStorage {
+            constructor(dbName = 'KGCodeDB', storeName = 'projects') {
+                this.dbName = dbName;
+                this.storeName = storeName;
+                this.db = null;
+            }
+
+            async init() {
+                return new Promise((resolve, reject) => {
+                    const request = indexedDB.open(this.dbName, 1);
+                    request.onerror = () => reject(request.error);
+                    request.onsuccess = () => {
+                        this.db = request.result;
+                        resolve(this.db);
+                    };
+                    request.onupgradeneeded = (event) => {
+                        const db = event.target.result;
+                        if (!db.objectStoreNames.contains(this.storeName)) {
+                            db.createObjectStore(this.storeName);
+                        }
+                    };
+                });
+            }
+
+            async getItem(key) {
+                return new Promise((resolve, reject) => {
+                    const transaction = this.db.transaction(this.storeName, 'readonly');
+                    const store = transaction.objectStore(this.storeName);
+                    const request = store.get(key);
+                    request.onsuccess = () => resolve(request.result);
+                    request.onerror = () => reject(request.error);
+                });
+            }
+
+            async setItem(key, value) {
+                return new Promise((resolve, reject) => {
+                    const transaction = this.db.transaction(this.storeName, 'readwrite');
+                    const store = transaction.objectStore(this.storeName);
+                    const request = store.put(value, key);
+                    request.onsuccess = () => resolve(request.result);
+                    request.onerror = () => reject(request.error);
+                });
+            }
+        }
+
+        // Projeto Inicial Padrão (Starter Web Project)
+        const DEFAULT_PROJECT = {
+            name: "MeuProjetoWeb",
+            files: {
+                "index.html": {
+                    content: `<!DOCTYPE html>\n<html lang="pt-BR">\n<head>\n    <meta charset="UTF-8">\n    <title>Meu App iOS</title>\n    <link rel="stylesheet" href="style.css">\n</head>\n<body class="bg-slate-900 text-white flex flex-col items-center justify-center h-screen">\n    <div class="text-center p-6 bg-slate-800 rounded-xl shadow-2xl border border-slate-700 max-w-sm">\n        <h1 class="text-2xl font-bold text-blue-400 mb-2">KG Code no iPhone! 🚀</h1>\n        <p class="text-zinc-400 text-sm mb-4">Sua IDE profissional desenvolvida para rodar direto no Safari.</p>\n        <button onclick="cliqueMe()" class="bg-blue-600 hover:bg-blue-500 text-white font-medium px-4 py-2 rounded-lg shadow transition">Testar JavaScript</button>\n    </div>\n    <script src="script.js"><\/script>\n</body>\n</html>`,
+                    language: "html"
+                },
+                "style.css": {
+                    content: `/* Estilos CSS do Projeto */\nbody {\n    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;\n}`,
+                    language: "css"
+                },
+                "script.js": {
+                    content: `function cliqueMe() {\n    console.log("Botão clicado com sucesso no iPhone!");\n    alert("Olá do KG Code rodando no Safari mobile!");\n}`,
+                    language: "javascript"
+                },
+                "README.md": {
+                    content: `# KG Code - Meu Projeto\n\nCriado e editado diretamente no iPhone via KG Code IDE.`,
+                    language: "markdown"
+                }
+            }
+        };
+
+        class KGCodeApp {
+            constructor() {
+                this.storage = new IndexedDBStorage();
+                this.project = DEFAULT_PROJECT;
+                this.openTabs = ["index.html"];
+                this.activeFile = "index.html";
+                this.editor = null;
+                this.sidebarOpen = true;
+                this.bottomPanelMinimized = false;
+                this.currentBottomTab = "preview";
+            }
+
+            async init() {
+                try {
+                    await this.storage.init();
+                    const saved = await this.storage.getItem('currentProject');
+                    if (saved) {
+                        this.project = saved;
+                    } else {
+                        await this.storage.setItem('currentProject', this.project);
+                    }
+                } catch (e) {
+                    console.error("Erro ao carregar IndexedDB, usando padrão:", e);
+                }
+
+                // Inicializar CodeMirror
+                this.editor = CodeMirror.fromTextArea(document.getElementById('code-editor-textarea'), {
+                    mode: 'htmlmixed',
+                    theme: 'vscode-dark',
+                    lineNumbers: true,
+                    autoCloseBrackets: true,
+                    matchBrackets: true,
+                    indentUnit: 4,
+                    tabSize: 4,
+                    lineWrapping: true
+                });
+
+                this.editor.on('change', () => {
+                    if (this.activeFile && this.project.files[this.activeFile]) {
+                        this.project.files[this.activeFile].content = this.editor.getValue();
+                        this.scheduleAutoSave();
+                    }
+                });
+
+                this.renderSidebar();
+                this.renderTabs();
+                this.openFile("index.html");
+                this.runProject();
+
+                // Ajustar tamanho do editor no carregamento
+                setTimeout(() => this.editor.refresh(), 200);
+            }
+
+            scheduleAutoSave() {
+                const autoSaveCheckbox = document.getElementById('setting-autosave');
+                if (autoSaveCheckbox && autoSaveCheckbox.checked) {
+                    clearTimeout(this._saveTimeout);
+                    this._saveTimeout = setTimeout(() => {
+                        this.saveProjectToStorage();
+                    }, 800);
+                }
+            }
+
+            async saveProjectToStorage() {
+                try {
+                    await this.storage.setItem('currentProject', this.project);
+                } catch (e) {
+                    console.error("Erro ao salvar no IndexedDB:", e);
+                }
+            }
+
+            renderSidebar() {
+                const container = document.getElementById('sidebar-content');
+                document.getElementById('project-title-display').textContent = this.project.name;
+                
+                let html = `<div class="font-bold text-zinc-300 px-2 py-1 flex items-center justify-between">
+                    <span><i class="fa-solid fa-folder-closed mr-1 text-yellow-500"></i> ${this.project.name}</span>
+                </div>`;
+                
+                html += `<div class="pl-2 space-y-0.5 mt-1">`;
+                for (let filename in this.project.files) {
+                    const isActive = filename === this.activeFile;
+                    let icon = "fa-file text-zinc-400";
+                    if (filename.endsWith('.html')) icon = "fa-brands fa-html5 text-orange-400";
+                    else if (filename.endsWith('.css')) icon = "fa-brands fa-css3-alt text-blue-400";
+                    else if (filename.endsWith('.js')) icon = "fa-brands fa-js text-yellow-400";
+                    else if (filename.endsWith('.py')) icon = "fa-brands fa-python text-emerald-400";
+                    else if (filename.endsWith('.md')) icon = "fa-brands fa-markdown text-purple-400";
+
+                    html += `
+                        <div onclick="app.openFile('${filename}')" class="group flex items-center justify-between px-2 py-1.5 rounded cursor-pointer ${isActive ? 'bg-[#37373d] text-white' : 'hover:bg-[#2a2d2e] text-zinc-300'}">
+                            <div class="flex items-center space-x-2 truncate">
+                                <i class="${icon} text-sm"></i>
+                                <span class="truncate">${filename}</span>
+                            </div>
+                            <div class="hidden group-hover:flex items-center space-x-1">
+                                <button onclick="event.stopPropagation(); app.deleteFilePrompt('${filename}')" class="text-zinc-400 hover:text-red-400 p-1" title="Excluir">
+                                    <i class="fa-solid fa-trash text-xs"></i>
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                }
+                html += `</div>`;
+                container.innerHTML = html;
+            }
+
+            renderTabs() {
+                const bar = document.getElementById('tabs-bar');
+                let html = '';
+                this.openTabs.forEach(filename => {
+                    const isActive = filename === this.activeFile;
+                    html += `
+                        <div onclick="app.openFile('${filename}')" class="group h-full px-3 flex items-center space-x-2 border-r border-[#3f3f46] cursor-pointer text-xs ${isActive ? 'bg-[#1e1e1e] text-white border-t-2 border-t-blue-400' : 'bg-[#2d2d2d] text-zinc-400 hover:bg-[#2a2d2e]'}">
+                            <span>${filename}</span>
+                            <button onclick="event.stopPropagation(); app.closeTab('${filename}')" class="text-zinc-500 hover:text-white p-0.5 rounded">
+                                <i class="fa-solid fa-xmark text-[10px]"></i>
+                            </button>
+                        </div>
+                    `;
+                });
+                bar.innerHTML = html;
+            }
+
+            openFile(filename) {
+                if (!this.project.files[filename]) return;
+                this.activeFile = filename;
+                if (!this.openTabs.includes(filename)) {
+                    this.openTabs.push(filename);
+                }
+                this.renderTabs();
+                this.renderSidebar();
+
+                const fileData = this.project.files[filename];
+                this.editor.setValue(fileData.content);
+
+                // Definir modo do CodeMirror
+                let mode = 'javascript';
+                if (filename.endsWith('.html')) mode = 'htmlmixed';
+                else if (filename.endsWith('.css')) mode = 'css';
+                else if (filename.endsWith('.py')) mode = 'python';
+                else if (filename.endsWith('.md')) mode = 'markdown';
+                this.editor.setOption('mode', mode);
+                setTimeout(() => this.editor.refresh(), 50);
+            }
+
+            closeTab(filename) {
+                this.openTabs = this.openTabs.filter(f => f !== filename);
+                if (this.activeFile === filename) {
+                    if (this.openTabs.length > 0) {
+                        this.openFile(this.openTabs[this.openTabs.length - 1]);
+                    } else {
+                        this.activeFile = null;
+                        this.editor.setValue('');
+                    }
+                }
+                this.renderTabs();
+            }
+
+            switchSidebarTab(tab) {
+                ['explorer', 'search', 'extensions'].forEach(t => {
+                    const btn = document.getElementById(`btn-tab-${t}`);
+                    if (btn) {
+                        if (t === tab) btn.classList.add('border-l-2', 'border-blue-400', 'text-white');
+                        else btn.classList.remove('border-l-2', 'border-blue-400', 'text-white');
+                        if (t !== tab) btn.classList.add('text-zinc-400');
+                    }
+                });
+                if (tab === 'search') {
+                    this.showModal("Pesquisa", "Funcionalidade de busca global em desenvolvimento.", false, null);
+                } else if (tab === 'extensions') {
+                    this.showModal("Extensões KG Code", "O KG Code já vem integrado com suporte a HTML, CSS, JS, Python e Markdown para iPhone.", false, null);
+                }
+            }
+
+            switchBottomTab(tab) {
+                this.currentBottomTab = tab;
+                ['preview', 'console', 'terminal'].forEach(t => {
+                    const btn = document.getElementById(`btn-b-${t}`);
+                    const panel = document.getElementById(`panel-${t}`);
+                    if (t === tab) {
+                        btn.className = "text-zinc-200 font-medium pb-1 border-b-2 border-blue-400";
+                        panel.classList.remove('hidden');
+                    } else {
+                        btn.className = "text-zinc-400 hover:text-zinc-200 pb-1 border-b-2 border-transparent";
+                        panel.classList.add('hidden');
+                    }
+                });
+            }
+
+            toggleBottomPanel() {
+                const panel = document.getElementById('bottom-panel');
+                const icon = document.getElementById('bottom-panel-icon');
+                if (this.bottomPanelMinimized) {
+                    panel.style.height = '12rem';
+                    icon.className = "fa-solid fa-chevron-down";
+                    this.bottomPanelMinimized = false;
+                } else {
+                    panel.style.height = '2rem';
+                    icon.className = "fa-solid fa-chevron-up";
+                    this.bottomPanelMinimized = true;
+                }
+            }
+
+            toggleBottomPanelMobile() {
+                this.toggleBottomPanel();
+                this.switchBottomTab('console');
+            }
+
+            toggleSidebarMobile() {
+                const sb = document.getElementById('sidebar');
+                sb.classList.toggle('hidden');
+            }
+
+            runProject() {
+                this.switchBottomTab('preview');
+                const iframe = document.getElementById('preview-iframe');
+                
+                // Compilar HTML principal injetando CSS e JS locais se existirem
+                let htmlContent = this.project.files['index.html'] ? this.project.files['index.html'].content : '<h1>index.html não encontrado</h1>';
+                
+                // Substituir estilos externos linkados por tags style diretas se necessário
+                if (this.project.files['style.css']) {
+                    htmlContent = htmlContent.replace(
+                        /<link\s+rel=["']stylesheet["']\s+href=["']style\.css["']\s*\/?>/i,
+                        `<style>${this.project.files['style.css'].content}</style>`
+                    );
+                }
+                
+                // Substituir scripts externos linkados por tags script diretas
+                if (this.project.files['script.js']) {
+                    htmlContent = htmlContent.replace(
+                        /<script\s+src=["']script\.js["']\s*><\/script>/i,
+                        `<script>${this.project.files['script.js'].content}<\/script>`
+                    );
+                }
+
+                // Injetar capturador de console para o painel de console do KG Code
+                const consoleInterceptor = `
+                    <script>
+                        (function() {
+                            const oldLog = console.log;
+                            const oldError = console.error;
+                            window.parent.postMessage({type: 'clear-console'}, '*');
+                            console.log = function(...args) {
+                                oldLog.apply(console, args);
+                                window.parent.postMessage({type: 'console-log', message: args.join(' ')}, '*');
+                            };
+                            console.error = function(...args) {
+                                oldError.apply(console, args);
+                                window.parent.postMessage({type: 'console-error', message: args.join(' ')}, '*');
+                            };
+                            window.onerror = function(msg, url, line) {
+                                window.parent.postMessage({type: 'console-error', message: 'Erro: ' + msg + ' (linha ' + line + ')'}, '*');
+                            };
+                        })();
+                    </script>
+                `;
+                htmlContent = htmlContent.replace('</head>', consoleInterceptor + '</head>');
+
+                const blob = new Blob([htmlContent], { type: 'text/html' });
+                iframe.src = URL.createObjectURL(blob);
+            }
+
+            createNewFileDialog() {
+                this.showModal("Novo Arquivo", "Digite o nome do arquivo (ex: contato.html, script2.js):", true, (filename) => {
+                    if (!filename || this.project.files[filename]) return;
+                    let lang = "javascript";
+                    if (filename.endsWith('.html')) lang = "html";
+                    else if (filename.endsWith('.css')) lang = "css";
+                    else if (filename.endsWith('.md')) lang = "markdown";
+                    else if (filename.endsWith('.py')) lang = "python";
+
+                    this.project.files[filename] = { content: "// Novo arquivo criado no iPhone\n", language: lang };
+                    this.saveProjectToStorage();
+                    this.renderSidebar();
+                    this.openFile(filename);
+                });
+            }
+
+            createNewFolderDialog() {
+                this.showModal("Nova Pasta", "Gerenciamento de pastas suportado na estrutura do projeto.", false, null);
+            }
+
+            deleteFilePrompt(filename) {
+                if (Object.keys(this.project.files).length <= 1) {
+                    this.showModal("Aviso", "O projeto precisa ter pelo menos um arquivo.", false, null);
+                    return;
+                }
+                this.showModal("Excluir Arquivo", `Deseja realmente excluir ${filename}?`, false, () => {
+                    delete this.project.files[filename];
+                    this.closeTab(filename);
+                    this.saveProjectToStorage();
+                    this.renderSidebar();
+                });
+            }
+
+            async exportZip() {
+                const zip = new JSZip();
+                for (let filename in this.project.files) {
+                    zip.file(filename, this.project.files[filename].content);
+                }
+                const content = await zip.generateAsync({ type: "blob" });
+                const url = URL.createObjectURL(content);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `${this.project.name}.zip`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            }
+
+            triggerImportZip() {
+                document.getElementById('zip-file-input').click();
+            }
+
+            async handleZipImport(event) {
+                const file = event.target.files[0];
+                if (!file) return;
+                try {
+                    const zip = new JSZip();
+                    const contents = await zip.loadAsync(file);
+                    this.project.files = {};
+                    this.project.name = file.name.replace('.zip', '');
+                    
+                    for (let relativePath in contents.files) {
+                        const zipEntry = contents.files[relativePath];
+                        if (!zipEntry.dir) {
+                            const text = await zipEntry.async("text");
+                            this.project.files[relativePath] = { content: text };
+                        }
+                    }
+
+                    await this.saveProjectToStorage();
+                    this.openTabs = Object.keys(this.project.files).slice(0, 1);
+                    if (this.openTabs.length > 0) this.openFile(this.openTabs[0]);
+                    this.renderSidebar();
+                    this.renderTabs();
+                    this.runProject();
+                    this.showModal("Sucesso", "Projeto ZIP importado com sucesso no iPhone!", false, null);
+                } catch (e) {
+                    this.showModal("Erro", "Falha ao ler o arquivo ZIP.", false, null);
+                    console.error(e);
+                }
+            }
+
+            handleTerminalInput(event) {
+                if (event.key === 'Enter') {
+                    const input = event.target;
+                    const cmd = input.value.trim();
+                    input.value = '';
+                    
+                    const output = document.getElementById('terminal-output');
+                    output.innerHTML += `<div class="text-blue-400">kgcode@iphone:~$ ${cmd}</div>`;
+                    
+                    if (cmd === 'help') {
+                        output.innerHTML += `<div>Comandos disponíveis: <span class="text-yellow-400">ls, clear, run, date, about, python</span></div>`;
+                    } else if (cmd === 'ls') {
+                        const filesList = Object.keys(this.project.files).join('  ');
+                        output.innerHTML += `<div>${filesList}</div>`;
+                    } else if (cmd === 'clear') {
+                        output.innerHTML = `<div>KG Code Terminal v1.0.0 (iOS Web Sandbox)</div>`;
+                    } else if (cmd === 'run') {
+                        output.innerHTML += `<div>Executando projeto web...</div>`;
+                        this.runProject();
+                    } else if (cmd === 'date') {
+                        output.innerHTML += `<div>${new Date().toLocaleString()}</div>`;
+                    } else if (cmd === 'about') {
+                        output.innerHTML += `<div>KG Code - IDE profissional para iPhone rodando no Safari.</div>`;
+                    } else if (cmd === 'python' || cmd.startsWith('python ')) {
+                        output.innerHTML += `<div class="text-yellow-400">Nota: O Safari mobile executa JavaScript nativamente. Para executar Python em tempo real, utilize um servidor de suporte remoto ou Pyodide WebAssembly.</div>`;
+                    } else if (cmd !== '') {
+                        output.innerHTML += `<command class="text-red-400">Comando não reconhecido: ${cmd}. Digite help.</command>`;
+                    }
+                    output.scrollTop = output.scrollHeight;
+                }
+            }
+
+            showModal(title, desc, showInput, onConfirm) {
+                document.getElementById('modal-title').textContent = title;
+                document.getElementById('modal-desc').textContent = desc;
+                const inputContainer = document.getElementById('modal-input-container');
+                const inputField = document.getElementById('modal-input');
+                const confirmBtn = document.getElementById('modal-btn-confirm');
+                
+                if (showInput) {
+                    inputContainer.classList.remove('hidden');
+                    inputField.value = '';
+                    setTimeout(() => inputField.focus(), 100);
+                } else {
+                    inputContainer.classList.add('hidden');
+                }
+
+                const modal = document.getElementById('custom-modal');
+                modal.classList.remove('hidden');
+
+                // Remover event listeners anteriores clonando o botão
+                const newConfirmBtn = confirmBtn.cloneNode(true);
+                confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
+
+                newConfirmBtn.onclick = () => {
+                    modal.classList.add('hidden');
+                    if (onConfirm) {
+                        onConfirm(showInput ? inputField.value : null);
+                    }
+                };
+            }
+
+            closeModal() {
+                document.getElementById('custom-modal').classList.add('hidden');
+            }
+
+            openSettingsModal() {
+                document.getElementById('settings-modal').classList.remove('hidden');
+            }
+
+            closeSettingsModal() {
+                document.getElementById('settings-modal').classList.add('hidden');
+            }
+
+            updateSettings() {
+                const fontSize = document.getElementById('setting-font-size').value;
+                const cmEl = document.querySelector('.CodeMirror');
+                if (cmEl) cmEl.style.fontSize = fontSize;
+            }
+        }
+
+        // Listener para mensagens do iframe (console logs)
+        window.addEventListener('message', (event) => {
+            if (event.data && event.data.type) {
+                const logsContainer = document.getElementById('console-logs');
+                if (event.data.type === 'clear-console') {
+                    logsContainer.innerHTML = '';
+                } else if (event.data.type === 'console-log') {
+                    logsContainer.innerHTML += `<div class="py-0.5 border-b border-[#2d2d2d] text-zinc-300">&gt; ${event.data.message}</div>`;
+                    logsContainer.scrollTop = logsContainer.scrollHeight;
+                } else if (event.data.type === 'console-error') {
+                    logsContainer.innerHTML += `<div class="py-0.5 border-b border-[#2d2d2d] text-red-400">&gt; ${event.data.message}</div>`;
+                    logsContainer.scrollTop = logsContainer.scrollHeight;
+                }
+            }
+        });
+
+        // Inicializar aplicação ao carregar a página
+        const app = new KGCodeApp();
+        window.onload = function() {
+            app.init();
+        };
+    </script>
+</body>
+</html>
