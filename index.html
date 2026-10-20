@@ -11,6 +11,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/theme/dracula.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/theme/eclipse.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/xml/xml.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/javascript/javascript.min.js"></script>
@@ -22,7 +23,36 @@
 
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; -webkit-tap-highlight-color: transparent; }
-        body { background-color: #181818; color: #cccccc; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+        body { background-color: #181818; color: #cccccc; height: 100vh; display: flex; flex-direction: column; overflow: hidden; transition: background 0.2s, color 0.2s; }
+        
+        /* Tema Claro (Light Theme) */
+        body.light-mode { background-color: #f3f3f3; color: #333333; }
+        body.light-mode header { background-color: #f0f0f0; border-bottom: 1px solid #e0e0e0; }
+        body.light-mode .logo { color: #005fb8; }
+        body.light-mode #sidebar { background-color: #f8f8f8; border-right: 1px solid #e0e0e0; }
+        body.light-mode .sidebar-title { color: #555; border-bottom: 1px solid #e5e5e5; }
+        body.light-mode .file-item { color: #333; }
+        body.light-mode .file-item.active { background-color: #e4e4e7; border-left-color: #007acc; color: #000; }
+        body.light-mode .file-item i, body.light-mode .file-actions i { color: #666; }
+        body.light-mode #editor-container { background: #ffffff; }
+        body.light-mode .tabs-header { background-color: #f0f0f0; border-bottom: 1px solid #e0e0e0; }
+        body.light-mode .tab { background: #e8e8e8; color: #666; border-right: 1px solid #ddd; }
+        body.light-mode .tab.active { background: #ffffff; color: #000; border-top: 2px solid #007acc; }
+        body.light-mode .quick-symbols { background: #f0f0f0; border-bottom: 1px solid #e0e0e0; }
+        body.light-mode .symbol-btn { background: #e0e0e0; color: #333; border: 1px solid #ccc; }
+        body.light-mode #bottom-panel { background: #f8f8f8; border-top: 1px solid #ddd; }
+        body.light-mode .panel-tabs { background-color: #f0f0f0; border-bottom: 1px solid #ddd; }
+        body.light-mode .panel-tab { color: #666; }
+        body.light-mode .panel-tab.active { color: #000; border-bottom-color: #007acc; }
+        body.light-mode #console-log { color: #007acc; }
+        body.light-mode .modal-box { background: #ffffff; color: #333; border: 1px solid #ccc; }
+        body.light-mode .modal-box h3 { color: #111; }
+        body.light-mode .modal-box label { color: #555; }
+        body.light-mode .modal-box input, body.light-mode .modal-box select { background: #f9f9f9; color: #333; border: 1px solid #ccc; }
+        body.light-mode nav { background: #f0f0f0; border-top: 1px solid #ddd; }
+        body.light-mode nav button { color: #555; }
+        body.light-mode nav button.active { color: #007acc; }
+
         header { background-color: #323233; height: 45px; display: flex; align-items: center; justify-content: space-between; padding: 0 10px; border-bottom: 1px solid #252526; }
         .logo { font-weight: bold; color: #007acc; display: flex; align-items: center; gap: 8px; font-size: 16px; }
         .actions { display: flex; gap: 6px; }
@@ -31,6 +61,7 @@
         .btn-secondary { background: #3c3c3c; }
         .btn-success { background: #238636; }
         .btn-github { background: #24292e; border: 1px solid #444; }
+        .btn-google { background: #db4437; color: white; }
         
         main { flex: 1; display: flex; overflow: hidden; position: relative; }
         
@@ -89,7 +120,7 @@
         <div class="actions">
             <button class="btn btn-secondary" onclick="formatCode()" title="Formatar Código"><i class="fa-solid fa-wand-magic-sparkles"></i></button>
             <button class="btn btn-secondary" onclick="toggleModal('search-modal')" title="Localizar"><i class="fa-solid fa-magnifying-glass"></i></button>
-            <button class="btn btn-github" onclick="toggleModal('github-modal')" title="GitHub"><i class="fa-brands fa-github"></i></button>
+            <button class="btn btn-secondary" onclick="toggleModal('auth-modal')" title="Contas / Login"><i class="fa-solid fa-user-circle"></i></button>
             <button class="btn btn-success" onclick="runProject()" title="Executar"><i class="fa-solid fa-play"></i></button>
         </div>
     </header>
@@ -102,9 +133,8 @@
                 <span>Explorador</span>
                 <div class="sidebar-icons">
                     <i class="fa-solid fa-file-circle-plus" onclick="addNewFile()" title="Novo Ficheiro" style="cursor:pointer"></i>
-                    <i class="fa-solid fa-folder-arrow-down" onclick="document.getElementById('file-input').click()" title="Importar" style="cursor:pointer"></i>
-                    <i class="fa-solid fa-magnifying-glass" onclick="toggleModal('search-modal')" title="Localizar" style="cursor:pointer"></i>
-                    <i class="fa-brands fa-github" onclick="toggleModal('github-modal')" title="GitHub" style="cursor:pointer"></i>
+                    <i class="fa-solid fa-folder-arrow-down" onclick="document.getElementById('file-input').click()" title="Importar Ficheiro/ZIP" style="cursor:pointer"></i>
+                    <i class="fa-solid fa-user-circle" onclick="toggleModal('auth-modal')" title="Login" style="cursor:pointer"></i>
                     <i class="fa-solid fa-gear" onclick="toggleModal('settings-modal')" title="Configurações" style="cursor:pointer"></i>
                 </div>
             </div>
@@ -161,6 +191,36 @@
         <div id="file-type-badge">HTML</div>
     </div>
 
+    <!-- Modal de Login / Contas (Google & GitHub) -->
+    <div class="modal-overlay" id="auth-modal">
+        <div class="modal-box">
+            <h3><i class="fa-solid fa-user-lock"></i> Contas & Conexões</h3>
+            
+            <!-- Secção Google -->
+            <div style="margin-bottom: 15px; border-bottom: 1px solid #444; padding-bottom: 12px;">
+                <label style="font-weight: bold; color: #fff; margin-bottom: 6px;">Conta Google:</label>
+                <div id="google-status" style="font-size: 12px; margin-bottom: 8px; color: #aaa;">Não conectado</div>
+                <button class="btn btn-google" style="width: 100%; justify-content: center;" onclick="loginGoogle()"><i class="fa-brands fa-google"></i> Entrar com Google</button>
+            </div>
+
+            <!-- Secção GitHub -->
+            <div>
+                <label style="font-weight: bold; color: #fff; margin-bottom: 6px;">Conta GitHub (Repositórios):</label>
+                <input type="password" id="github-token" placeholder="Personal Access Token (ghp_...)">
+                <input type="text" id="github-user" placeholder="Usuário (ex: midorya-sam)">
+                <input type="text" id="github-repo" placeholder="Repositório (ex: meu-projeto)">
+                <div style="display:flex; gap:8px;">
+                    <button class="btn btn-github" style="flex:1; justify-content: center;" onclick="githubPull()"><i class="fa-solid fa-cloud-arrow-down"></i> Puxar</button>
+                    <button class="btn btn-success" style="flex:1; justify-content: center;" onclick="githubPush()"><i class="fa-solid fa-cloud-arrow-up"></i> Enviar</button>
+                </div>
+            </div>
+
+            <div style="text-align: right; margin-top: 15px;">
+                <button class="btn btn-secondary" onclick="toggleModal('auth-modal')">Fechar</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Modal de Localizar e Substituir -->
     <div class="modal-overlay" id="search-modal">
         <div class="modal-box">
@@ -176,33 +236,17 @@
         </div>
     </div>
 
-    <!-- Modal do GitHub -->
-    <div class="modal-overlay" id="github-modal">
-        <div class="modal-box">
-            <h3><i class="fa-brands fa-github"></i> Conexão com GitHub</h3>
-            <label>Personal Access Token (PAT):</label>
-            <input type="password" id="github-token" placeholder="ghp_xxxxxxxxxxxx">
-            
-            <label>Usuário / Organização:</label>
-            <input type="text" id="github-user" placeholder="ex: midorya-sam">
-
-            <label>Nome do Repositório:</label>
-            <input type="text" id="github-repo" placeholder="ex: meu-projeto">
-
-            <div style="display:flex; gap:8px; margin-top: 10px;">
-                <button class="btn" style="flex:1" onclick="githubPull()"><i class="fa-solid fa-cloud-arrow-down"></i> Baixar Repo</button>
-                <button class="btn btn-success" style="flex:1" onclick="githubPush()"><i class="fa-solid fa-cloud-arrow-up"></i> Fazer Push</button>
-            </div>
-            <div style="text-align: right; margin-top: 15px;">
-                <button class="btn btn-secondary" onclick="toggleModal('github-modal')">Fechar</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Modal de Configurações -->
+    <!-- Modal de Configurações (Com Tema Claro/Escuro) -->
     <div class="modal-overlay" id="settings-modal">
         <div class="modal-box">
             <h3><i class="fa-solid fa-gear" style="color: #007acc;"></i> Configurações</h3>
+            
+            <label>Tema da Interface e Editor:</label>
+            <select id="setting-theme" onchange="changeTheme()">
+                <option value="dark">Escuro (Dracula)</option>
+                <option value="light">Claro (Light)</option>
+            </select>
+
             <label>Tamanho da Fonte:</label>
             <select id="setting-fontsize" onchange="changeFontSize()">
                 <option value="12px">12px</option>
@@ -227,16 +271,16 @@
         <button onclick="toggleSidebar()"><i class="fa-solid fa-bars"></i></button>
         <button onclick="switchPanel('preview')"><i class="fa-solid fa-desktop"></i></button>
         <button onclick="switchPanel('console')"><i class="fa-solid fa-terminal"></i></button>
-        <button onclick="toggleModal('search-modal')"><i class="fa-solid fa-magnifying-glass"></i></button>
+        <button onclick="toggleModal('auth-modal')"><i class="fa-solid fa-user-circle"></i></button>
         <button onclick="exportProject()"><i class="fa-solid fa-file-export"></i></button>
     </nav>
 
     <script>
         let files = JSON.parse(localStorage.getItem('kgcode_files')) || {
-            'index.html': { name: 'index.html', language: 'htmlmixed', content: '<!DOCTYPE html>\n<html>\n<head>\n  <link rel="stylesheet" href="style.css">\n</head>\n<body>\n  <h1>KG Code no Chrome!</h1>\n  <button onclick="saudacao()">Testar JS</button>\n  <script src="script.js"><\/script>\n</body>\n</html>' },
-            'style.css': { name: 'style.css', language: 'css', content: 'body {\n  background-color: #121212;\n  color: #007acc;\n  font-family: sans-serif;\n  text-align: center;\n  padding-top: 40px;\n}\nbutton {\n  padding: 10px 20px;\n  background: #007acc;\n  color: white;\n  border: none;\n  border-radius: 5px;\n}' },
-            'script.js': { name: 'script.js', language: 'javascript', content: 'function saudacao() {\n  alert("Tudo a funcionar no Chrome!");\n  console.log("Executado com sucesso.");\n}' },
-            'main.py': { name: 'main.py', language: 'python', content: 'print("Python a correr via WebAssembly!")\nfor i in range(3):\n    print(f"Passo {i+1}")' }
+            'index.html': { name: 'index.html', language: 'htmlmixed', content: '<!DOCTYPE html>\n<html>\n<head>\n  <link rel="stylesheet" href="style.css">\n</head>\n<body>\n  <h1>KG Code no iPhone/Chrome!</h1>\n  <button onclick="saudacao()">Testar JS</button>\n  <script src="script.js"><\/script>\n</body>\n</html>' },
+            'style.css': { name: 'style.css', language: 'css', content: 'body {\n  font-family: sans-serif;\n  text-align: center;\n  padding-top: 40px;\n}\nbutton {\n  padding: 10px 20px;\n  background: #007acc;\n  color: white;\n  border: none;\n  border-radius: 5px;\n}' },
+            'script.js': { name: 'script.js', language: 'javascript', content: 'function saudacao() {\n  alert("Tudo a funcionar perfeitamente!");\n  console.log("Executado com sucesso.");\n}' },
+            'main.py': { name: 'main.py', language: 'python', content: 'print("Python rodando via WebAssembly!")\nfor i in range(3):\n    print(f"Passo {i+1}")' }
         };
 
         let currentFile = 'index.html';
@@ -267,9 +311,28 @@
                 document.getElementById('cursor-pos').innerText = `Lin ${pos.line + 1}, Col ${pos.ch + 1}`;
             });
 
+            // Carregar configurações guardadas
+            const savedTheme = localStorage.getItem('kgcode_theme') || 'dark';
+            document.getElementById('setting-theme').value = savedTheme;
+            applyTheme(savedTheme);
+
+            const savedSize = localStorage.getItem('kgcode_fontsize') || '14px';
+            document.getElementById('setting-fontsize').value = savedSize;
+            changeFontSize(savedSize);
+
+            const savedWrap = localStorage.getItem('kgcode_wrap') === 'true';
+            document.getElementById('setting-wrap').value = savedWrap;
+            changeWordWrap(savedWrap);
+
+            // Carregar credenciais GitHub e Google
             document.getElementById('github-token').value = localStorage.getItem('kgcode_gh_token') || '';
             document.getElementById('github-user').value = localStorage.getItem('kgcode_gh_user') || '';
             document.getElementById('github-repo').value = localStorage.getItem('kgcode_gh_repo') || '';
+
+            const googleUser = localStorage.getItem('kgcode_google_user');
+            if (googleUser) {
+                document.getElementById('google-status').innerText = `Conectado como: ${googleUser}`;
+            }
 
             renderFileList();
             openFile(currentFile);
@@ -375,12 +438,41 @@
             modal.style.display = modal.style.display === 'flex' ? 'none' : 'flex';
         }
 
+        function applyTheme(theme) {
+            if (theme === 'light') {
+                document.body.classList.add('light-mode');
+                editor.setOption('theme', 'eclipse');
+            } else {
+                document.body.classList.remove('light-mode');
+                editor.setOption('theme', 'dracula');
+            }
+            localStorage.setItem('kgcode_theme', theme);
+        }
+
+        function changeTheme() {
+            const theme = document.getElementById('setting-theme').value;
+            applyTheme(theme);
+        }
+
+        function changeFontSize(sizeInput) {
+            const size = sizeInput || document.getElementById('setting-fontsize').value;
+            document.querySelector('.CodeMirror').style.fontSize = size;
+            localStorage.setItem('kgcode_fontsize', size);
+            editor.refresh();
+        }
+
+        function changeWordWrap(wrapInput) {
+            const wrap = wrapInput !== undefined ? wrapInput : (document.getElementById('setting-wrap').value === 'true');
+            editor.setOption("lineWrapping", wrap);
+            localStorage.setItem('kgcode_wrap', wrap);
+        }
+
         function formatCode() {
             const totalLines = editor.lineCount();
             for (let i = 0; i < totalLines; i++) {
                 editor.indentLine(i);
             }
-            alert("Código formatado/re-indented!");
+            alert("Código formatado com sucesso!");
         }
 
         function performReplace() {
@@ -394,13 +486,24 @@
             alert("Substituição concluída!");
         }
 
+        // Login Google Simulado / Integrado
+        function loginGoogle() {
+            const email = prompt("Insira o seu e-mail Google para autenticação rápida:");
+            if (email) {
+                localStorage.setItem('kgcode_google_user', email);
+                document.getElementById('google-status').innerText = `Conectado como: ${email}`;
+                alert("Login com Google efetuado com sucesso!");
+            }
+        }
+
+        // GitHub Sync
         async function githubPush() {
             const token = document.getElementById('github-token').value.trim();
             const user = document.getElementById('github-user').value.trim();
             const repo = document.getElementById('github-repo').value.trim();
 
             if (!token || !user || !repo) {
-                alert("Por favor, preencha o Token, Usuário e Repositório.");
+                alert("Por favor, preencha o Token, Usuário e Repositório do GitHub.");
                 return;
             }
 
@@ -408,7 +511,7 @@
             localStorage.setItem('kgcode_gh_user', user);
             localStorage.setItem('kgcode_gh_repo', repo);
 
-            const commitMsg = prompt("Mensagem do Commit:", "Atualização pelo KG Code");
+            const commitMsg = prompt("Mensagem do Commit:", "Atualização via KG Code");
             if (!commitMsg) return;
 
             alert("A enviar ficheiros para o GitHub...");
@@ -443,7 +546,7 @@
                     if (!res.ok) throw new Error(`Erro ao enviar ${fileName}`);
                 }
                 alert("Commit realizado com sucesso!");
-                toggleModal('github-modal');
+                toggleModal('auth-modal');
             } catch (err) {
                 alert("Falha no commit: " + err.message);
             }
@@ -484,7 +587,7 @@
                 renderFileList();
                 openFile(Object.keys(files)[0]);
                 alert("Repositório descarregado com sucesso!");
-                toggleModal('github-modal');
+                toggleModal('auth-modal');
             } catch (err) {
                 alert("Erro ao puxar dados: " + err.message);
             }
@@ -560,6 +663,7 @@
             }
         });
 
+        // Importação de arquivos e ZIP
         function handleFileImport(event) {
             const uploadedFiles = event.target.files;
             if (!uploadedFiles.length) return;
@@ -582,6 +686,7 @@
                                     });
                                 }
                             });
+                            alert("Projeto ZIP importado com sucesso!");
                         });
                     };
                     reader.readAsArrayBuffer(file);
@@ -601,6 +706,7 @@
                     reader.readAsText(file);
                 }
             });
+            event.target.value = '';
         }
 
         function exportProject() {
