@@ -25,7 +25,6 @@
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; -webkit-tap-highlight-color: transparent; }
         body { background-color: #181818; color: #cccccc; height: 100vh; display: flex; flex-direction: column; overflow: hidden; transition: background 0.2s, color 0.2s; }
         
-        /* Tema Claro (Light Theme) */
         body.light-mode { background-color: #f3f3f3; color: #333333; }
         body.light-mode header { background-color: #f0f0f0; border-bottom: 1px solid #e0e0e0; }
         body.light-mode .logo { color: #005fb8; }
@@ -88,7 +87,7 @@
         
         #bottom-panel { height: 40%; background: #1e1e1e; border-top: 1px solid #333; display: flex; flex-direction: column; }
         #bottom-panel.hidden { display: none; }
-        .panel-tabs { display: flex; background-color: #252526; border-bottom: 1px solid #2d2d2d; justify-content: space-between; }
+        .panel-tabs { display: flex; background-color: #252526; border-bottom: 1px solid #2d2d2d; justify-content: space-between; align-items: center; }
         .panel-tab-group { display: flex; }
         .panel-tab { padding: 6px 12px; font-size: 12px; color: #888; cursor: pointer; border-bottom: 2px solid transparent; }
         .panel-tab.active { color: white; border-bottom-color: #007acc; font-weight: bold; }
@@ -96,7 +95,11 @@
         #preview-frame { width: 100%; height: 100%; border: none; background: white; }
         #console-log { padding: 10px; font-family: monospace; font-size: 12px; color: #4ec9b0; white-space: pre-wrap; }
         
-        /* Modais */
+        /* Modal de Tela Cheia para Jogos/Testes */
+        #fullscreen-preview-modal { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #fff; z-index: 2000; flex-direction: column; }
+        #fullscreen-preview-modal header { background: #252526; color: white; height: 40px; display: flex; justify-content: space-between; align-items: center; padding: 0 10px; }
+        #fullscreen-preview-frame { flex: 1; width: 100%; border: none; background: white; }
+
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 100; justify-content: center; align-items: center; }
         .modal-box { background: #252526; padding: 20px; border-radius: 6px; width: 90%; max-width: 400px; border: 1px solid #333; color: #ccc; }
         .modal-box h3 { margin-bottom: 12px; font-size: 15px; color: #fff; display: flex; align-items: center; gap: 8px; }
@@ -119,6 +122,7 @@
         </div>
         <div class="actions">
             <button class="btn btn-secondary" onclick="toggleModal('import-modal')" title="Importar do Celular"><i class="fa-solid fa-folder-open"></i></button>
+            <button class="btn btn-secondary" onclick="toggleModal('export-modal')" title="Exportar para o Celular"><i class="fa-solid fa-file-export"></i></button>
             <button class="btn btn-secondary" onclick="formatCode()" title="Formatar Código"><i class="fa-solid fa-wand-magic-sparkles"></i></button>
             <button class="btn btn-secondary" onclick="toggleModal('search-modal')" title="Localizar"><i class="fa-solid fa-magnifying-glass"></i></button>
             <button class="btn btn-secondary" onclick="toggleModal('auth-modal')" title="Contas / Login"><i class="fa-solid fa-user-circle"></i></button>
@@ -136,6 +140,7 @@
                 <div class="sidebar-icons">
                     <i class="fa-solid fa-file-circle-plus" onclick="addNewFile()" title="Novo Ficheiro" style="cursor:pointer"></i>
                     <i class="fa-solid fa-folder-arrow-down" onclick="toggleModal('import-modal')" title="Importar" style="cursor:pointer"></i>
+                    <i class="fa-solid fa-file-export" onclick="toggleModal('export-modal')" title="Exportar" style="cursor:pointer"></i>
                     <i class="fa-solid fa-user-circle" onclick="toggleModal('auth-modal')" title="Login" style="cursor:pointer"></i>
                     <i class="fa-solid fa-gear" onclick="toggleModal('settings-modal')" title="Configurações" style="cursor:pointer"></i>
                 </div>
@@ -175,8 +180,9 @@
                 <div class="panel-tab active" id="tab-lbl-preview" onclick="switchPanel('preview')">Pré-visualização</div>
                 <div class="panel-tab" id="tab-lbl-console" onclick="switchPanel('console')">Console</div>
             </div>
-            <div style="padding: 4px 10px;">
-                <button class="btn btn-secondary" style="padding: 2px 6px; font-size: 10px;" onclick="openNewTab()"><i class="fa-solid fa-expand"></i> <span id="txt-newtab">Nova Aba</span></button>
+            <div style="padding: 4px 10px; display: flex; gap: 6px;">
+                <button class="btn btn-secondary" style="padding: 2px 6px; font-size: 10px;" onclick="openFullscreenPreview()"><i class="fa-solid fa-expand"></i> Tela Cheia</button>
+                <button class="btn btn-secondary" style="padding: 2px 6px; font-size: 10px;" onclick="openNewTabDirect()"><i class="fa-solid fa-up-right-from-square"></i> <span id="txt-newtab">Nova Aba</span></button>
             </div>
         </div>
         <div class="panel-content" id="panel-preview">
@@ -187,13 +193,22 @@
         </div>
     </div>
 
+    <!-- Modal de Tela Cheia Nativo (Garante funcionamento de Jogos/Multiplayer) -->
+    <div id="fullscreen-preview-modal">
+        <header>
+            <span style="font-size: 13px; font-weight: bold;"><i class="fa-solid fa-gamepad"></i> Teste em Tela Cheia</span>
+            <button class="btn btn-secondary" style="padding: 3px 8px; font-size: 11px;" onclick="closeFullscreenPreview()"><i class="fa-solid fa-xmark"></i> Sair</button>
+        </header>
+        <iframe id="fullscreen-preview-frame"></iframe>
+    </div>
+
     <div class="status-bar">
         <div><i class="fa-solid fa-check-double"></i> <span id="save-status">Salvo</span></div>
         <div id="cursor-pos">Lin 1, Col 1</div>
         <div id="file-type-badge">HTML</div>
     </div>
 
-    <!-- Modal de Importação do Celular -->
+    <!-- Modal de Importação -->
     <div class="modal-overlay" id="import-modal">
         <div class="modal-box">
             <h3 id="modal-import-title"><i class="fa-solid fa-mobile-screen-button"></i> Importar do Celular</h3>
@@ -213,10 +228,30 @@
         </div>
     </div>
 
-    <!-- Modal de Login / Contas (Google & GitHub) -->
+    <!-- Modal de Exportação do Celular -->
+    <div class="modal-overlay" id="export-modal">
+        <div class="modal-box">
+            <h3><i class="fa-solid fa-file-export"></i> Exportar para o Celular</h3>
+            <p style="font-size: 12px; color: #aaa; margin-bottom: 15px;">Como deseja salvar os arquivos no seu iPhone?</p>
+            
+            <button class="btn" style="width:100%; justify-content:center; padding:10px; margin-bottom:10px;" onclick="exportSingleFile()">
+                <i class="fa-solid fa-file-lines"></i> Salvar Arquivo Ativo
+            </button>
+            
+            <button class="btn btn-success" style="width:100%; justify-content:center; padding:10px;" onclick="exportProjectZip()">
+                <i class="fa-solid fa-file-zipper"></i> Salvar Projeto Completo (ZIP)
+            </button>
+
+            <div style="text-align: right; margin-top: 15px;">
+                <button class="btn btn-secondary" onclick="toggleModal('export-modal')">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Login / GitHub -->
     <div class="modal-overlay" id="auth-modal">
         <div class="modal-box">
-            <h3 id="auth-title"><i class="fa-solid fa-user-lock"></i> Contas & Conexões</h3>
+            <h3 id="auth-title"><i class="fa-solid fa-user-lock"></i> Contas & GitHub</h3>
             
             <div style="margin-bottom: 15px; border-bottom: 1px solid #444; padding-bottom: 12px;">
                 <label id="lbl-google" style="font-weight: bold; color: #fff; margin-bottom: 6px;">Conta Google:</label>
@@ -225,14 +260,15 @@
             </div>
 
             <div>
-                <label id="lbl-github" style="font-weight: bold; color: #fff; margin-bottom: 6px;">GitHub (Repositórios):</label>
-                <p id="github-helper" style="font-size: 11px; color: #888; margin-bottom: 6px;">Para conectar sua conta sem complicações, cole seu Personal Access Token:</p>
-                <input type="password" id="github-token" placeholder="Personal Access Token (ghp_...)">
+                <label id="lbl-github" style="font-weight: bold; color: #fff; margin-bottom: 6px;">Sincronizar com GitHub:</label>
+                <p id="github-helper" style="font-size: 11px; color: #888; margin-bottom: 6px;">Cole seu Token (PAT), Usuário e Repositório:</p>
+                <input type="password" id="github-token" placeholder="Token (ghp_...)">
                 <input type="text" id="github-user" placeholder="Usuário (ex: midorya-sam)">
                 <input type="text" id="github-repo" placeholder="Repositório (ex: meu-projeto)">
+                
                 <div style="display:flex; gap:8px;">
-                    <button class="btn btn-github" style="flex:1; justify-content: center;" onclick="githubPull()"><i class="fa-solid fa-cloud-arrow-down"></i> <span id="txt-gh-pull">Puxar</span></button>
-                    <button class="btn btn-success" style="flex:1; justify-content: center;" onclick="githubPush()"><i class="fa-solid fa-cloud-arrow-up"></i> <span id="txt-gh-push">Enviar</span></button>
+                    <button class="btn btn-github" style="flex:1; justify-content: center;" onclick="githubPull()"><i class="fa-solid fa-cloud-arrow-down"></i> <span id="txt-gh-pull">Baixar</span></button>
+                    <button class="btn btn-success" style="flex:1; justify-content: center;" onclick="githubPush()"><i class="fa-solid fa-cloud-arrow-up"></i> <span id="txt-gh-push">Salvar Commit</span></button>
                 </div>
             </div>
 
@@ -257,7 +293,7 @@
         </div>
     </div>
 
-    <!-- Modal de Configurações (Tema e Idioma) -->
+    <!-- Modal de Configurações -->
     <div class="modal-overlay" id="settings-modal">
         <div class="modal-box">
             <h3 id="settings-title"><i class="fa-solid fa-gear" style="color: #007acc;"></i> Configurações</h3>
@@ -298,20 +334,19 @@
         <button onclick="toggleSidebar()"><i class="fa-solid fa-bars"></i></button>
         <button onclick="switchPanel('preview')"><i class="fa-solid fa-desktop"></i></button>
         <button onclick="switchPanel('console')"><i class="fa-solid fa-terminal"></i></button>
+        <button onclick="toggleModal('export-modal')"><i class="fa-solid fa-file-export"></i></button>
         <button onclick="toggleModal('import-modal')"><i class="fa-solid fa-folder-open"></i></button>
-        <button onclick="exportProject()"><i class="fa-solid fa-file-export"></i></button>
     </nav>
 
     <script>
-        // Traduções (PT / EN)
         const i18n = {
             pt: {
                 explorer: "Explorador", preview: "Pré-visualização", console: "Console", newtab: "Nova Aba",
                 importTitle: "Importar do Celular", importDesc: "Escolha como deseja importar seus arquivos salvos no iPhone:",
                 btnFiles: "Importar Arquivos Soltos ou ZIP", btnFolder: "Importar Pasta Completa", cancel: "Cancelar",
-                authTitle: "Contas & Conexões", lblGoogle: "Conta Google:", btnGoogle: "Entrar com Google", notConnected: "Não conectado",
-                lblGithub: "GitHub (Repositórios):", ghHelper: "Cole seu Personal Access Token para conectar rapidamente:",
-                pull: "Puxar", push: "Enviar", close: "Fechar",
+                authTitle: "Contas & GitHub", lblGoogle: "Conta Google:", btnGoogle: "Entrar com Google", notConnected: "Não conectado",
+                lblGithub: "Sincronizar com GitHub:", ghHelper: "Cole seu Token (PAT), Usuário e Repositório:",
+                pull: "Baixar", push: "Salvar Commit", close: "Fechar",
                 searchTitle: "Localizar e Substituir", lblFind: "Localizar:", lblReplace: "Substituir por:", replaceAll: "Substituir Tudo",
                 settingsTitle: "Configurações", lblLang: "Idioma / Language:", lblTheme: "Tema da Interface:", lblFontsize: "Tamanho da Fonte:", lblWrap: "Quebra de Linha (Word Wrap):",
                 saved: "Salvo", saving: "A salvar..."
@@ -320,9 +355,9 @@
                 explorer: "Explorer", preview: "Preview", console: "Console", newtab: "New Tab",
                 importTitle: "Import from Phone", importDesc: "Choose how to import your files saved on iPhone:",
                 btnFiles: "Import Loose Files or ZIP", btnFolder: "Import Full Folder", cancel: "Cancel",
-                authTitle: "Accounts & Connections", lblGoogle: "Google Account:", btnGoogle: "Sign in with Google", notConnected: "Not connected",
-                lblGithub: "GitHub (Repositories):", ghHelper: "Paste your Personal Access Token to connect easily:",
-                pull: "Pull", push: "Push", close: "Close",
+                authTitle: "Accounts & GitHub", lblGoogle: "Google Account:", btnGoogle: "Sign in with Google", notConnected: "Not connected",
+                lblGithub: "Sync with GitHub:", ghHelper: "Paste your Token (PAT), User and Repository:",
+                pull: "Pull", push: "Save Commit", close: "Close",
                 searchTitle: "Find and Replace", lblFind: "Find:", lblReplace: "Replace with:", replaceAll: "Replace All",
                 settingsTitle: "Settings", lblLang: "Language / Idioma:", lblTheme: "Interface Theme:", lblFontsize: "Font Size:", lblWrap: "Word Wrap:",
                 saved: "Saved", saving: "Saving..."
@@ -422,7 +457,7 @@
 
             const googleUser = localStorage.getItem('kgcode_google_user');
             if (googleUser) {
-                document.getElementById('google-status').innerText = `Conectado como: ${googleUser}`;
+                document.getElementById('google-status').innerText = `Conectado como / Logged in: ${googleUser}`;
             }
 
             renderFileList();
@@ -503,7 +538,7 @@
         function deleteFile(e, fileName) {
             e.stopPropagation();
             if (Object.keys(files).length <= 1) {
-                alert("Deve manter pelo menos um ficheiro / Keep at least one file.");
+                alert("Mantenha pelo menos um arquivo. / Keep at least one file.");
                 return;
             }
             if (confirm(`Deseja apagar / Delete ${fileName}?`)) {
@@ -537,6 +572,31 @@
         function triggerFolderImport() {
             toggleModal('import-modal');
             document.getElementById('folder-input').click();
+        }
+
+        function exportSingleFile() {
+            if (!currentFile || !files[currentFile]) return;
+            const content = files[currentFile].content;
+            const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+            const a = document.createElement("a");
+            a.href = URL.createObjectURL(blob);
+            a.download = currentFile;
+            a.click();
+            toggleModal('export-modal');
+        }
+
+        function exportProjectZip() {
+            const zip = new JSZip();
+            Object.keys(files).forEach(filename => {
+                zip.file(filename, files[filename].content);
+            });
+            zip.generateAsync({type:"blob"}).then(function(content) {
+                const a = document.createElement("a");
+                a.href = URL.createObjectURL(content);
+                a.download = "projeto-kgcode.zip";
+                a.click();
+                toggleModal('export-modal');
+            });
         }
 
         function changeLanguage() {
@@ -579,7 +639,7 @@
             for (let i = 0; i < totalLines; i++) {
                 editor.indentLine(i);
             }
-            alert("Código formatado com sucesso! / Formatted successfully!");
+            alert("Código formatado! / Formatted!");
         }
 
         function performReplace() {
@@ -590,16 +650,23 @@
             let newContent = content.replaceAll(findStr, replaceStr);
             editor.setValue(newContent);
             toggleModal('search-modal');
-            alert("Substituição concluída! / Done!");
+            alert("Concluído! / Done!");
         }
 
         function loginGoogle() {
-            const email = prompt("Insira o seu e-mail Google / Enter your Google email:");
+            const email = prompt("E-mail Google:");
             if (email) {
                 localStorage.setItem('kgcode_google_user', email);
-                document.getElementById('google-status').innerText = `Conectado como / Logged in: ${email}`;
-                alert("Login efetuado com sucesso! / Login successful!");
+                document.getElementById('google-status').innerText = `Conectado como: ${email}`;
+                alert("Login efetuado!");
             }
+        }
+
+        function utf8ToBase64(str) {
+            const bytes = new TextEncoder().encode(str);
+            let bin = '';
+            bytes.forEach(b => bin += String.fromCharCode(b));
+            return btoa(bin);
         }
 
         async function githubPush() {
@@ -608,7 +675,7 @@
             const repo = document.getElementById('github-repo').value.trim();
 
             if (!token || !user || !repo) {
-                alert("Preencha Token, Usuário e Repositório / Fill in Token, User and Repo.");
+                alert("Preencha o Token, Usuário e Repositório do GitHub.");
                 return;
             }
 
@@ -616,10 +683,10 @@
             localStorage.setItem('kgcode_gh_user', user);
             localStorage.setItem('kgcode_gh_repo', repo);
 
-            const commitMsg = prompt("Mensagem do Commit / Commit message:", "Atualização via KG Code");
+            const commitMsg = prompt("Mensagem do Commit:", "Atualizado pelo KG Code iPhone");
             if (!commitMsg) return;
 
-            alert("A enviar ficheiros para o GitHub / Sending to GitHub...");
+            alert("A enviar arquivos para o GitHub...");
 
             try {
                 for (let fileName of Object.keys(files)) {
@@ -628,8 +695,12 @@
                     
                     let sha = "";
                     const checkRes = await fetch(url, {
-                        headers: { "Authorization": `token ${token}` }
+                        headers: { 
+                            "Authorization": `token ${token}`,
+                            "Accept": "application/vnd.github.v3+json"
+                        }
                     });
+                    
                     if (checkRes.ok) {
                         const data = await checkRes.json();
                         sha = data.sha;
@@ -639,21 +710,25 @@
                         method: "PUT",
                         headers: {
                             "Authorization": `token ${token}`,
-                            "Content-Type": "application/json"
+                            "Content-Type": "application/json",
+                            "Accept": "application/vnd.github.v3+json"
                         },
                         body: JSON.stringify({
                             message: commitMsg,
-                            content: btoa(unescape(encodeURIComponent(content))),
+                            content: utf8ToBase64(content),
                             sha: sha || undefined
                         })
                     });
 
-                    if (!res.ok) throw new Error(`Erro ao enviar ${fileName}`);
+                    if (!res.ok) {
+                        const errData = await res.json();
+                        throw new Error(errData.message || `Erro em ${fileName}`);
+                    }
                 }
-                alert("Commit realizado com sucesso! / Commit successful!");
+                alert("Projeto salvo com sucesso no GitHub!");
                 toggleModal('auth-modal');
             } catch (err) {
-                alert("Falha / Failed: " + err.message);
+                alert("Erro ao enviar para o GitHub: " + err.message);
             }
         }
 
@@ -663,16 +738,21 @@
             const repo = document.getElementById('github-repo').value.trim();
 
             if (!user || !repo) {
-                alert("Preencha Usuário e Repositório / Fill in User and Repo.");
+                alert("Preencha Usuário e Repositório.");
                 return;
             }
 
             try {
                 const url = `https://api.github.com/repos/${user}/${repo}/contents/`;
-                const headers = token ? { "Authorization": `token ${token}` } : {};
+                const headers = { "Accept": "application/vnd.github.v3+json" };
+                if (token) headers["Authorization"] = `token ${token}`;
+
                 const res = await fetch(url, { headers });
 
-                if (!res.ok) throw new Error("Repositório não encontrado / Repo not found.");
+                if (!res.ok) {
+                    const errData = await res.json();
+                    throw new Error(errData.message || "Repositório não encontrado.");
+                }
 
                 const data = await res.json();
                 for (let item of data) {
@@ -691,11 +771,35 @@
                 saveLocal();
                 renderFileList();
                 openFile(Object.keys(files)[0]);
-                alert("Repositório descarregado! / Downloaded successfully!");
+                alert("Repositório descarregado com sucesso!");
                 toggleModal('auth-modal');
             } catch (err) {
-                alert("Erro / Error: " + err.message);
+                alert("Erro ao puxar dados: " + err.message);
             }
+        }
+
+        function generateFullHtml() {
+            let htmlContent = files['index.html'] ? files['index.html'].content : '';
+            if (files['style.css']) {
+                htmlContent = htmlContent.replace('</head>', `<style>${files['style.css'].content}</style></head>`);
+            }
+            const consoleInterceptor = `
+                <script>
+                    const _log = console.log;
+                    console.log = function(...args) {
+                        try { window.parent.postMessage({type: 'log', data: args.join(' ')}, '*'); } catch(e){}
+                        _log.apply(console, args);
+                    };
+                    window.onerror = function(msg, url, line) {
+                        try { window.parent.postMessage({type: 'error', data: msg + " (Linha " + line + ")" }, '*'); } catch(e){}
+                    };
+                <\/script>
+            `;
+            htmlContent = htmlContent.replace('<head>', '<head>' + consoleInterceptor);
+            if (files['script.js']) {
+                htmlContent = htmlContent.replace('</body>', `<script>${files['script.js'].content}<\/script></body>`);
+            }
+            return htmlContent;
         }
 
         async function runProject() {
@@ -718,44 +822,34 @@
             }
 
             const iframe = document.getElementById('preview-frame');
-            let htmlContent = files['index.html'] ? files['index.html'].content : '';
-            
-            if (files['style.css']) {
-                htmlContent = htmlContent.replace('</head>', `<style>${files['style.css'].content}</style></head>`);
-            }
-
-            const consoleInterceptor = `
-                <script>
-                    const _log = console.log;
-                    console.log = function(...args) {
-                        window.parent.postMessage({type: 'log', data: args.join(' ')}, '*');
-                        _log.apply(console, args);
-                    };
-                    window.onerror = function(msg, url, line) {
-                        window.parent.postMessage({type: 'error', data: msg + " (Linha " + line + ")" }, '*');
-                    };
-                <\/script>
-            `;
-            htmlContent = htmlContent.replace('<head>', '<head>' + consoleInterceptor);
-
-            if (files['script.js']) {
-                htmlContent = htmlContent.replace('</body>', `<script>${files['script.js'].content}<\/script></body>`);
-            }
-
-            iframe.srcdoc = htmlContent;
+            iframe.srcdoc = generateFullHtml();
         }
 
-        function openNewTab() {
-            let htmlContent = files['index.html'] ? files['index.html'].content : '';
-            if (files['style.css']) {
-                htmlContent = htmlContent.replace('</head>', `<style>${files['style.css'].content}</style></head>`);
+        // TELA CHEIA DENTRO DA PRÓPRIA PÁGINA (Funciona 100% para Jogos/Multiplayer no iOS)
+        function openFullscreenPreview() {
+            const modal = document.getElementById('fullscreen-preview-modal');
+            const iframe = document.getElementById('fullscreen-preview-frame');
+            iframe.srcdoc = generateFullHtml();
+            modal.style.display = 'flex';
+        }
+
+        function closeFullscreenPreview() {
+            const modal = document.getElementById('fullscreen-preview-modal');
+            const iframe = document.getElementById('fullscreen-preview-frame');
+            iframe.srcdoc = '';
+            modal.style.display = 'none';
+        }
+
+        // NOVA ABA DIRETA SEM BLOB (Evita ERR_FAILED)
+        function openNewTabDirect() {
+            const newWindow = window.open('', '_blank');
+            if (newWindow) {
+                newWindow.document.open();
+                newWindow.document.write(generateFullHtml());
+                newWindow.document.close();
+            } else {
+                alert("Permita pop-ups no navegador para abrir em nova aba.");
             }
-            if (files['script.js']) {
-                htmlContent = htmlContent.replace('</body>', `<script>${files['script.js'].content}<\/script></body>`);
-            }
-            const blob = new Blob([htmlContent], { type: 'text/html' });
-            const url = URL.createObjectURL(blob);
-            window.open(url, '_blank');
         }
 
         window.addEventListener('message', function(e) {
@@ -790,7 +884,7 @@
                                     });
                                 }
                             });
-                            alert("Projeto ZIP importado com sucesso! / ZIP imported!");
+                            alert("Projeto ZIP importado!");
                         });
                     };
                     reader.readAsArrayBuffer(file);
@@ -811,19 +905,6 @@
                 }
             });
             event.target.value = '';
-        }
-
-        function exportProject() {
-            const zip = new JSZip();
-            Object.keys(files).forEach(filename => {
-                zip.file(filename, files[filename].content);
-            });
-            zip.generateAsync({type:"blob"}).then(function(content) {
-                const a = document.createElement("a");
-                a.href = URL.createObjectURL(content);
-                a.download = "projeto-kgcode.zip";
-                a.click();
-            });
         }
     </script>
 </body>
