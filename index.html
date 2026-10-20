@@ -118,6 +118,7 @@
             <i class="fa-solid fa-code"></i> KG Code
         </div>
         <div class="actions">
+            <button class="btn btn-secondary" onclick="toggleModal('import-modal')" title="Importar do Celular"><i class="fa-solid fa-folder-open"></i></button>
             <button class="btn btn-secondary" onclick="formatCode()" title="Formatar Código"><i class="fa-solid fa-wand-magic-sparkles"></i></button>
             <button class="btn btn-secondary" onclick="toggleModal('search-modal')" title="Localizar"><i class="fa-solid fa-magnifying-glass"></i></button>
             <button class="btn btn-secondary" onclick="toggleModal('auth-modal')" title="Contas / Login"><i class="fa-solid fa-user-circle"></i></button>
@@ -125,15 +126,16 @@
         </div>
     </header>
 
-    <input type="file" id="file-input" style="display:none" multiple accept=".zip,.html,.css,.js,.py,.json,.md" onchange="handleFileImport(event)">
+    <input type="file" id="file-input" style="display:none" multiple onchange="handleFileImport(event)">
+    <input type="file" id="folder-input" style="display:none" webkitdirectory directory multiple onchange="handleFileImport(event)">
 
     <main>
         <div id="sidebar">
             <div class="sidebar-title">
-                <span>Explorador</span>
+                <span id="txt-explorer">Explorador</span>
                 <div class="sidebar-icons">
                     <i class="fa-solid fa-file-circle-plus" onclick="addNewFile()" title="Novo Ficheiro" style="cursor:pointer"></i>
-                    <i class="fa-solid fa-folder-arrow-down" onclick="document.getElementById('file-input').click()" title="Importar Ficheiro/ZIP" style="cursor:pointer"></i>
+                    <i class="fa-solid fa-folder-arrow-down" onclick="toggleModal('import-modal')" title="Importar" style="cursor:pointer"></i>
                     <i class="fa-solid fa-user-circle" onclick="toggleModal('auth-modal')" title="Login" style="cursor:pointer"></i>
                     <i class="fa-solid fa-gear" onclick="toggleModal('settings-modal')" title="Configurações" style="cursor:pointer"></i>
                 </div>
@@ -170,11 +172,11 @@
     <div id="bottom-panel">
         <div class="panel-tabs">
             <div class="panel-tab-group">
-                <div class="panel-tab active" onclick="switchPanel('preview')">Pré-visualização</div>
-                <div class="panel-tab" onclick="switchPanel('console')">Console</div>
+                <div class="panel-tab active" id="tab-lbl-preview" onclick="switchPanel('preview')">Pré-visualização</div>
+                <div class="panel-tab" id="tab-lbl-console" onclick="switchPanel('console')">Console</div>
             </div>
             <div style="padding: 4px 10px;">
-                <button class="btn btn-secondary" style="padding: 2px 6px; font-size: 10px;" onclick="openNewTab()"><i class="fa-solid fa-expand"></i> Nova Aba</button>
+                <button class="btn btn-secondary" style="padding: 2px 6px; font-size: 10px;" onclick="openNewTab()"><i class="fa-solid fa-expand"></i> <span id="txt-newtab">Nova Aba</span></button>
             </div>
         </div>
         <div class="panel-content" id="panel-preview">
@@ -191,32 +193,51 @@
         <div id="file-type-badge">HTML</div>
     </div>
 
+    <!-- Modal de Importação do Celular -->
+    <div class="modal-overlay" id="import-modal">
+        <div class="modal-box">
+            <h3 id="modal-import-title"><i class="fa-solid fa-mobile-screen-button"></i> Importar do Celular</h3>
+            <p id="modal-import-desc" style="font-size: 12px; color: #aaa; margin-bottom: 15px;">Escolha como deseja importar seus arquivos salvos no iPhone:</p>
+            
+            <button class="btn" style="width:100%; justify-content:center; padding:10px; margin-bottom:10px;" onclick="triggerFileImport()">
+                <i class="fa-solid fa-file-code"></i> <span id="btn-import-files">Importar Arquivos Soltos ou ZIP</span>
+            </button>
+            
+            <button class="btn btn-secondary" style="width:100%; justify-content:center; padding:10px;" onclick="triggerFolderImport()">
+                <i class="fa-solid fa-folder-open"></i> <span id="btn-import-folder">Importar Pasta Completa</span>
+            </button>
+
+            <div style="text-align: right; margin-top: 15px;">
+                <button class="btn btn-secondary" id="btn-close-import" onclick="toggleModal('import-modal')">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Modal de Login / Contas (Google & GitHub) -->
     <div class="modal-overlay" id="auth-modal">
         <div class="modal-box">
-            <h3><i class="fa-solid fa-user-lock"></i> Contas & Conexões</h3>
+            <h3 id="auth-title"><i class="fa-solid fa-user-lock"></i> Contas & Conexões</h3>
             
-            <!-- Secção Google -->
             <div style="margin-bottom: 15px; border-bottom: 1px solid #444; padding-bottom: 12px;">
-                <label style="font-weight: bold; color: #fff; margin-bottom: 6px;">Conta Google:</label>
+                <label id="lbl-google" style="font-weight: bold; color: #fff; margin-bottom: 6px;">Conta Google:</label>
                 <div id="google-status" style="font-size: 12px; margin-bottom: 8px; color: #aaa;">Não conectado</div>
-                <button class="btn btn-google" style="width: 100%; justify-content: center;" onclick="loginGoogle()"><i class="fa-brands fa-google"></i> Entrar com Google</button>
+                <button class="btn btn-google" style="width: 100%; justify-content: center;" onclick="loginGoogle()"><i class="fa-brands fa-google"></i> <span id="txt-btn-google">Entrar com Google</span></button>
             </div>
 
-            <!-- Secção GitHub -->
             <div>
-                <label style="font-weight: bold; color: #fff; margin-bottom: 6px;">Conta GitHub (Repositórios):</label>
+                <label id="lbl-github" style="font-weight: bold; color: #fff; margin-bottom: 6px;">GitHub (Repositórios):</label>
+                <p id="github-helper" style="font-size: 11px; color: #888; margin-bottom: 6px;">Para conectar sua conta sem complicações, cole seu Personal Access Token:</p>
                 <input type="password" id="github-token" placeholder="Personal Access Token (ghp_...)">
                 <input type="text" id="github-user" placeholder="Usuário (ex: midorya-sam)">
                 <input type="text" id="github-repo" placeholder="Repositório (ex: meu-projeto)">
                 <div style="display:flex; gap:8px;">
-                    <button class="btn btn-github" style="flex:1; justify-content: center;" onclick="githubPull()"><i class="fa-solid fa-cloud-arrow-down"></i> Puxar</button>
-                    <button class="btn btn-success" style="flex:1; justify-content: center;" onclick="githubPush()"><i class="fa-solid fa-cloud-arrow-up"></i> Enviar</button>
+                    <button class="btn btn-github" style="flex:1; justify-content: center;" onclick="githubPull()"><i class="fa-solid fa-cloud-arrow-down"></i> <span id="txt-gh-pull">Puxar</span></button>
+                    <button class="btn btn-success" style="flex:1; justify-content: center;" onclick="githubPush()"><i class="fa-solid fa-cloud-arrow-up"></i> <span id="txt-gh-push">Enviar</span></button>
                 </div>
             </div>
 
             <div style="text-align: right; margin-top: 15px;">
-                <button class="btn btn-secondary" onclick="toggleModal('auth-modal')">Fechar</button>
+                <button class="btn btn-secondary" onclick="toggleModal('auth-modal')"><span id="txt-close">Fechar</span></button>
             </div>
         </div>
     </div>
@@ -224,30 +245,36 @@
     <!-- Modal de Localizar e Substituir -->
     <div class="modal-overlay" id="search-modal">
         <div class="modal-box">
-            <h3><i class="fa-solid fa-magnifying-glass"></i> Localizar e Substituir</h3>
-            <label>Localizar:</label>
+            <h3 id="search-title"><i class="fa-solid fa-magnifying-glass"></i> Localizar e Substituir</h3>
+            <label id="lbl-find">Localizar:</label>
             <input type="text" id="find-text" placeholder="Texto a procurar...">
-            <label>Substituir por:</label>
+            <label id="lbl-replace">Substituir por:</label>
             <input type="text" id="replace-text" placeholder="Novo texto...">
             <div style="display:flex; gap:8px; margin-top: 10px;">
-                <button class="btn" style="flex:1" onclick="performReplace()">Substituir Tudo</button>
-                <button class="btn btn-secondary" onclick="toggleModal('search-modal')">Fechar</button>
+                <button class="btn" style="flex:1" onclick="performReplace()"><span id="txt-replace-all">Substituir Tudo</span></button>
+                <button class="btn btn-secondary" onclick="toggleModal('search-modal')"><span id="txt-close-2">Fechar</span></button>
             </div>
         </div>
     </div>
 
-    <!-- Modal de Configurações (Com Tema Claro/Escuro) -->
+    <!-- Modal de Configurações (Tema e Idioma) -->
     <div class="modal-overlay" id="settings-modal">
         <div class="modal-box">
-            <h3><i class="fa-solid fa-gear" style="color: #007acc;"></i> Configurações</h3>
+            <h3 id="settings-title"><i class="fa-solid fa-gear" style="color: #007acc;"></i> Configurações</h3>
             
-            <label>Tema da Interface e Editor:</label>
+            <label id="lbl-lang">Idioma / Language:</label>
+            <select id="setting-language" onchange="changeLanguage()">
+                <option value="pt" selected>Português (PT)</option>
+                <option value="en">English (EN)</option>
+            </select>
+
+            <label id="lbl-theme">Tema da Interface:</label>
             <select id="setting-theme" onchange="changeTheme()">
                 <option value="dark">Escuro (Dracula)</option>
                 <option value="light">Claro (Light)</option>
             </select>
 
-            <label>Tamanho da Fonte:</label>
+            <label id="lbl-fontsize">Tamanho da Fonte:</label>
             <select id="setting-fontsize" onchange="changeFontSize()">
                 <option value="12px">12px</option>
                 <option value="14px" selected>14px (Padrão)</option>
@@ -255,14 +282,14 @@
                 <option value="18px">18px</option>
             </select>
 
-            <label>Quebra de Linha (Word Wrap):</label>
+            <label id="lbl-wrap">Quebra de Linha (Word Wrap):</label>
             <select id="setting-wrap" onchange="changeWordWrap()">
                 <option value="false">Desligado</option>
                 <option value="true">Ligado</option>
             </select>
 
             <div style="text-align: right; margin-top: 10px;">
-                <button class="btn" onclick="toggleModal('settings-modal')">Fechar</button>
+                <button class="btn" onclick="toggleModal('settings-modal')"><span id="txt-close-3">Fechar</span></button>
             </div>
         </div>
     </div>
@@ -271,11 +298,71 @@
         <button onclick="toggleSidebar()"><i class="fa-solid fa-bars"></i></button>
         <button onclick="switchPanel('preview')"><i class="fa-solid fa-desktop"></i></button>
         <button onclick="switchPanel('console')"><i class="fa-solid fa-terminal"></i></button>
-        <button onclick="toggleModal('auth-modal')"><i class="fa-solid fa-user-circle"></i></button>
+        <button onclick="toggleModal('import-modal')"><i class="fa-solid fa-folder-open"></i></button>
         <button onclick="exportProject()"><i class="fa-solid fa-file-export"></i></button>
     </nav>
 
     <script>
+        // Traduções (PT / EN)
+        const i18n = {
+            pt: {
+                explorer: "Explorador", preview: "Pré-visualização", console: "Console", newtab: "Nova Aba",
+                importTitle: "Importar do Celular", importDesc: "Escolha como deseja importar seus arquivos salvos no iPhone:",
+                btnFiles: "Importar Arquivos Soltos ou ZIP", btnFolder: "Importar Pasta Completa", cancel: "Cancelar",
+                authTitle: "Contas & Conexões", lblGoogle: "Conta Google:", btnGoogle: "Entrar com Google", notConnected: "Não conectado",
+                lblGithub: "GitHub (Repositórios):", ghHelper: "Cole seu Personal Access Token para conectar rapidamente:",
+                pull: "Puxar", push: "Enviar", close: "Fechar",
+                searchTitle: "Localizar e Substituir", lblFind: "Localizar:", lblReplace: "Substituir por:", replaceAll: "Substituir Tudo",
+                settingsTitle: "Configurações", lblLang: "Idioma / Language:", lblTheme: "Tema da Interface:", lblFontsize: "Tamanho da Fonte:", lblWrap: "Quebra de Linha (Word Wrap):",
+                saved: "Salvo", saving: "A salvar..."
+            },
+            en: {
+                explorer: "Explorer", preview: "Preview", console: "Console", newtab: "New Tab",
+                importTitle: "Import from Phone", importDesc: "Choose how to import your files saved on iPhone:",
+                btnFiles: "Import Loose Files or ZIP", btnFolder: "Import Full Folder", cancel: "Cancel",
+                authTitle: "Accounts & Connections", lblGoogle: "Google Account:", btnGoogle: "Sign in with Google", notConnected: "Not connected",
+                lblGithub: "GitHub (Repositories):", ghHelper: "Paste your Personal Access Token to connect easily:",
+                pull: "Pull", push: "Push", close: "Close",
+                searchTitle: "Find and Replace", lblFind: "Find:", lblReplace: "Replace with:", replaceAll: "Replace All",
+                settingsTitle: "Settings", lblLang: "Language / Idioma:", lblTheme: "Interface Theme:", lblFontsize: "Font Size:", lblWrap: "Word Wrap:",
+                saved: "Saved", saving: "Saving..."
+            }
+        };
+
+        let currentLang = localStorage.getItem('kgcode_lang') || 'pt';
+
+        function updateTexts() {
+            const t = i18n[currentLang];
+            document.getElementById('txt-explorer').innerText = t.explorer;
+            document.getElementById('tab-lbl-preview').innerText = t.preview;
+            document.getElementById('tab-lbl-console').innerText = t.console;
+            document.getElementById('txt-newtab').innerText = t.newtab;
+            document.getElementById('modal-import-title').innerHTML = `<i class="fa-solid fa-mobile-screen-button"></i> ${t.importTitle}`;
+            document.getElementById('modal-import-desc').innerText = t.importDesc;
+            document.getElementById('btn-import-files').innerText = t.btnFiles;
+            document.getElementById('btn-import-folder').innerText = t.btnFolder;
+            document.getElementById('btn-close-import').innerText = t.cancel;
+            document.getElementById('auth-title').innerHTML = `<i class="fa-solid fa-user-lock"></i> ${t.authTitle}`;
+            document.getElementById('lbl-google').innerText = t.lblGoogle;
+            document.getElementById('txt-btn-google').innerText = t.btnGoogle;
+            document.getElementById('lbl-github').innerText = t.lblGithub;
+            document.getElementById('github-helper').innerText = t.ghHelper;
+            document.getElementById('txt-gh-pull').innerText = t.pull;
+            document.getElementById('txt-gh-push').innerText = t.push;
+            document.getElementById('txt-close').innerText = t.close;
+            document.getElementById('txt-close-2').innerText = t.close;
+            document.getElementById('txt-close-3').innerText = t.close;
+            document.getElementById('search-title').innerHTML = `<i class="fa-solid fa-magnifying-glass"></i> ${t.searchTitle}`;
+            document.getElementById('lbl-find').innerText = t.lblFind;
+            document.getElementById('lbl-replace').innerText = t.lblReplace;
+            document.getElementById('txt-replace-all').innerText = t.replaceAll;
+            document.getElementById('settings-title').innerHTML = `<i class="fa-solid fa-gear" style="color: #007acc;"></i> ${t.settingsTitle}`;
+            document.getElementById('lbl-lang').innerText = t.lblLang;
+            document.getElementById('lbl-theme').innerText = t.lblTheme;
+            document.getElementById('lbl-fontsize').innerText = t.lblFontsize;
+            document.getElementById('lbl-wrap').innerText = t.lblWrap;
+        }
+
         let files = JSON.parse(localStorage.getItem('kgcode_files')) || {
             'index.html': { name: 'index.html', language: 'htmlmixed', content: '<!DOCTYPE html>\n<html>\n<head>\n  <link rel="stylesheet" href="style.css">\n</head>\n<body>\n  <h1>KG Code no iPhone/Chrome!</h1>\n  <button onclick="saudacao()">Testar JS</button>\n  <script src="script.js"><\/script>\n</body>\n</html>' },
             'style.css': { name: 'style.css', language: 'css', content: 'body {\n  font-family: sans-serif;\n  text-align: center;\n  padding-top: 40px;\n}\nbutton {\n  padding: 10px 20px;\n  background: #007acc;\n  color: white;\n  border: none;\n  border-radius: 5px;\n}' },
@@ -301,8 +388,9 @@
                 if (currentFile && files[currentFile]) {
                     files[currentFile].content = editor.getValue();
                     saveLocal();
-                    document.getElementById('save-status').innerText = 'A salvar...';
-                    setTimeout(() => { document.getElementById('save-status').innerText = 'Salvo'; }, 500);
+                    const t = i18n[currentLang];
+                    document.getElementById('save-status').innerText = t.saving;
+                    setTimeout(() => { document.getElementById('save-status').innerText = t.saved; }, 500);
                 }
             });
 
@@ -311,7 +399,11 @@
                 document.getElementById('cursor-pos').innerText = `Lin ${pos.line + 1}, Col ${pos.ch + 1}`;
             });
 
-            // Carregar configurações guardadas
+            const savedLang = localStorage.getItem('kgcode_lang') || 'pt';
+            document.getElementById('setting-language').value = savedLang;
+            currentLang = savedLang;
+            updateTexts();
+
             const savedTheme = localStorage.getItem('kgcode_theme') || 'dark';
             document.getElementById('setting-theme').value = savedTheme;
             applyTheme(savedTheme);
@@ -324,7 +416,6 @@
             document.getElementById('setting-wrap').value = savedWrap;
             changeWordWrap(savedWrap);
 
-            // Carregar credenciais GitHub e Google
             document.getElementById('github-token').value = localStorage.getItem('kgcode_gh_token') || '';
             document.getElementById('github-user').value = localStorage.getItem('kgcode_gh_user') || '';
             document.getElementById('github-repo').value = localStorage.getItem('kgcode_gh_repo') || '';
@@ -396,7 +487,7 @@
         }
 
         function addNewFile() {
-            const name = prompt("Nome do Ficheiro (ex: index.html, style.css, script.js, main.py):");
+            const name = prompt("Nome do Ficheiro / File name (ex: index.html, style.css, script.js):");
             if (!name) return;
 
             let lang = 'htmlmixed';
@@ -412,10 +503,10 @@
         function deleteFile(e, fileName) {
             e.stopPropagation();
             if (Object.keys(files).length <= 1) {
-                alert("Deve manter pelo menos um ficheiro.");
+                alert("Deve manter pelo menos um ficheiro / Keep at least one file.");
                 return;
             }
-            if (confirm(`Deseja apagar ${fileName}?`)) {
+            if (confirm(`Deseja apagar / Delete ${fileName}?`)) {
                 delete files[fileName];
                 saveLocal();
                 openFile(Object.keys(files)[0]);
@@ -436,6 +527,22 @@
         function toggleModal(id) {
             const modal = document.getElementById(id);
             modal.style.display = modal.style.display === 'flex' ? 'none' : 'flex';
+        }
+
+        function triggerFileImport() {
+            toggleModal('import-modal');
+            document.getElementById('file-input').click();
+        }
+
+        function triggerFolderImport() {
+            toggleModal('import-modal');
+            document.getElementById('folder-input').click();
+        }
+
+        function changeLanguage() {
+            currentLang = document.getElementById('setting-language').value;
+            localStorage.setItem('kgcode_lang', currentLang);
+            updateTexts();
         }
 
         function applyTheme(theme) {
@@ -472,7 +579,7 @@
             for (let i = 0; i < totalLines; i++) {
                 editor.indentLine(i);
             }
-            alert("Código formatado com sucesso!");
+            alert("Código formatado com sucesso! / Formatted successfully!");
         }
 
         function performReplace() {
@@ -483,27 +590,25 @@
             let newContent = content.replaceAll(findStr, replaceStr);
             editor.setValue(newContent);
             toggleModal('search-modal');
-            alert("Substituição concluída!");
+            alert("Substituição concluída! / Done!");
         }
 
-        // Login Google Simulado / Integrado
         function loginGoogle() {
-            const email = prompt("Insira o seu e-mail Google para autenticação rápida:");
+            const email = prompt("Insira o seu e-mail Google / Enter your Google email:");
             if (email) {
                 localStorage.setItem('kgcode_google_user', email);
-                document.getElementById('google-status').innerText = `Conectado como: ${email}`;
-                alert("Login com Google efetuado com sucesso!");
+                document.getElementById('google-status').innerText = `Conectado como / Logged in: ${email}`;
+                alert("Login efetuado com sucesso! / Login successful!");
             }
         }
 
-        // GitHub Sync
         async function githubPush() {
             const token = document.getElementById('github-token').value.trim();
             const user = document.getElementById('github-user').value.trim();
             const repo = document.getElementById('github-repo').value.trim();
 
             if (!token || !user || !repo) {
-                alert("Por favor, preencha o Token, Usuário e Repositório do GitHub.");
+                alert("Preencha Token, Usuário e Repositório / Fill in Token, User and Repo.");
                 return;
             }
 
@@ -511,10 +616,10 @@
             localStorage.setItem('kgcode_gh_user', user);
             localStorage.setItem('kgcode_gh_repo', repo);
 
-            const commitMsg = prompt("Mensagem do Commit:", "Atualização via KG Code");
+            const commitMsg = prompt("Mensagem do Commit / Commit message:", "Atualização via KG Code");
             if (!commitMsg) return;
 
-            alert("A enviar ficheiros para o GitHub...");
+            alert("A enviar ficheiros para o GitHub / Sending to GitHub...");
 
             try {
                 for (let fileName of Object.keys(files)) {
@@ -545,10 +650,10 @@
 
                     if (!res.ok) throw new Error(`Erro ao enviar ${fileName}`);
                 }
-                alert("Commit realizado com sucesso!");
+                alert("Commit realizado com sucesso! / Commit successful!");
                 toggleModal('auth-modal');
             } catch (err) {
-                alert("Falha no commit: " + err.message);
+                alert("Falha / Failed: " + err.message);
             }
         }
 
@@ -558,7 +663,7 @@
             const repo = document.getElementById('github-repo').value.trim();
 
             if (!user || !repo) {
-                alert("Preencha o Usuário e Repositório.");
+                alert("Preencha Usuário e Repositório / Fill in User and Repo.");
                 return;
             }
 
@@ -567,7 +672,7 @@
                 const headers = token ? { "Authorization": `token ${token}` } : {};
                 const res = await fetch(url, { headers });
 
-                if (!res.ok) throw new Error("Repositório não encontrado ou privado.");
+                if (!res.ok) throw new Error("Repositório não encontrado / Repo not found.");
 
                 const data = await res.json();
                 for (let item of data) {
@@ -586,10 +691,10 @@
                 saveLocal();
                 renderFileList();
                 openFile(Object.keys(files)[0]);
-                alert("Repositório descarregado com sucesso!");
+                alert("Repositório descarregado! / Downloaded successfully!");
                 toggleModal('auth-modal');
             } catch (err) {
-                alert("Erro ao puxar dados: " + err.message);
+                alert("Erro / Error: " + err.message);
             }
         }
 
@@ -663,10 +768,9 @@
             }
         });
 
-        // Importação de arquivos e ZIP
         function handleFileImport(event) {
             const uploadedFiles = event.target.files;
-            if (!uploadedFiles.length) return;
+            if (!uploadedFiles || !uploadedFiles.length) return;
 
             Array.from(uploadedFiles).forEach(file => {
                 if (file.name.endsWith('.zip')) {
@@ -686,14 +790,14 @@
                                     });
                                 }
                             });
-                            alert("Projeto ZIP importado com sucesso!");
+                            alert("Projeto ZIP importado com sucesso! / ZIP imported!");
                         });
                     };
                     reader.readAsArrayBuffer(file);
                 } else {
                     const reader = new FileReader();
                     reader.onload = function(e) {
-                        let name = file.name;
+                        let name = file.webkitRelativePath || file.name;
                         let lang = 'htmlmixed';
                         if (name.endsWith('.css')) lang = 'css';
                         if (name.endsWith('.js')) lang = 'javascript';
