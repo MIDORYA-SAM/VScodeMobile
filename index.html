@@ -20,6 +20,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/python/python.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script src="https://cdn.jsdelivr.net/pyodide/v0.23.4/full/pyodide.js"></script>
+    <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
 
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; -webkit-tap-highlight-color: transparent; }
@@ -74,7 +75,7 @@
         .file-item i { margin-right: 8px; }
         .file-actions i { margin-left: 8px; color: #888; font-size: 12px; }
         
-        #editor-container { flex: 1; display: flex; flex-direction: column; background: #1e1e1e; }
+        #editor-container { flex: 1; display: flex; flex-direction: column; background: #1e1e1e; position: relative; }
         .tabs-header { display: flex; background-color: #252526; overflow-x: auto; border-bottom: 1px solid #1e1e1e; }
         .tab { padding: 8px 16px; font-size: 12px; background: #2d2d2d; color: #969696; border-right: 1px solid #252526; display: flex; align-items: center; gap: 8px; cursor: pointer; white-space: nowrap; }
         .tab.active { background: #1e1e1e; color: #ffffff; border-top: 2px solid #007acc; }
@@ -85,6 +86,9 @@
 
         .CodeMirror { height: 100% !important; font-family: 'Courier New', Courier, monospace; font-size: 14px; }
         
+        #viewer-3d-container { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #1e1e1e; z-index: 5; flex-direction: column; align-items: center; justify-content: center; }
+        model-viewer { width: 100%; height: 100%; background-color: #111; }
+
         #bottom-panel { height: 40%; background: #1e1e1e; border-top: 1px solid #333; display: flex; flex-direction: column; }
         #bottom-panel.hidden { display: none; }
         .panel-tabs { display: flex; background-color: #252526; border-bottom: 1px solid #2d2d2d; justify-content: space-between; align-items: center; }
@@ -95,7 +99,6 @@
         #preview-frame { width: 100%; height: 100%; border: none; background: white; }
         #console-log { padding: 10px; font-family: monospace; font-size: 12px; color: #4ec9b0; white-space: pre-wrap; }
         
-        /* Modal de Tela Cheia para Jogos/Testes */
         #fullscreen-preview-modal { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #fff; z-index: 2000; flex-direction: column; }
         #fullscreen-preview-modal header { background: #252526; color: white; height: 40px; display: flex; justify-content: space-between; align-items: center; padding: 0 10px; }
         #fullscreen-preview-frame { flex: 1; width: 100%; border: none; background: white; }
@@ -168,6 +171,10 @@
                 <button class="symbol-btn" onclick="insertSymbol('-')">-</button>
             </div>
 
+            <div id="viewer-3d-container">
+                <model-viewer id="model-3d-preview" camera-controls auto-rotate shadow-intensity="1"></model-viewer>
+            </div>
+
             <div style="flex: 1; position: relative;">
                 <textarea id="code-editor"></textarea>
             </div>
@@ -193,7 +200,6 @@
         </div>
     </div>
 
-    <!-- Modal de Tela Cheia Nativo (Garante funcionamento de Jogos/Multiplayer) -->
     <div id="fullscreen-preview-modal">
         <header>
             <span style="font-size: 13px; font-weight: bold;"><i class="fa-solid fa-gamepad"></i> Teste em Tela Cheia</span>
@@ -208,77 +214,64 @@
         <div id="file-type-badge">HTML</div>
     </div>
 
-    <!-- Modal de Importação -->
+    <!-- Modais -->
     <div class="modal-overlay" id="import-modal">
         <div class="modal-box">
             <h3 id="modal-import-title"><i class="fa-solid fa-mobile-screen-button"></i> Importar do Celular</h3>
-            <p id="modal-import-desc" style="font-size: 12px; color: #aaa; margin-bottom: 15px;">Escolha como deseja importar seus arquivos salvos no iPhone:</p>
-            
+            <p id="modal-import-desc" style="font-size: 12px; color: #aaa; margin-bottom: 15px;">Escolha como deseja importar seus arquivos (códigos, 3D .glb, imagens ou ZIP):</p>
             <button class="btn" style="width:100%; justify-content:center; padding:10px; margin-bottom:10px;" onclick="triggerFileImport()">
-                <i class="fa-solid fa-file-code"></i> <span id="btn-import-files">Importar Arquivos Soltos ou ZIP</span>
+                <i class="fa-solid fa-file-code"></i> <span id="btn-import-files">Importar Arquivos (.glb, .zip, etc)</span>
             </button>
-            
             <button class="btn btn-secondary" style="width:100%; justify-content:center; padding:10px;" onclick="triggerFolderImport()">
                 <i class="fa-solid fa-folder-open"></i> <span id="btn-import-folder">Importar Pasta Completa</span>
             </button>
-
             <div style="text-align: right; margin-top: 15px;">
                 <button class="btn btn-secondary" id="btn-close-import" onclick="toggleModal('import-modal')">Cancelar</button>
             </div>
         </div>
     </div>
 
-    <!-- Modal de Exportação do Celular -->
     <div class="modal-overlay" id="export-modal">
         <div class="modal-box">
             <h3><i class="fa-solid fa-file-export"></i> Exportar para o Celular</h3>
             <p style="font-size: 12px; color: #aaa; margin-bottom: 15px;">Como deseja salvar os arquivos no seu iPhone?</p>
-            
             <button class="btn" style="width:100%; justify-content:center; padding:10px; margin-bottom:10px;" onclick="exportSingleFile()">
                 <i class="fa-solid fa-file-lines"></i> Salvar Arquivo Ativo
             </button>
-            
             <button class="btn btn-success" style="width:100%; justify-content:center; padding:10px;" onclick="exportProjectZip()">
                 <i class="fa-solid fa-file-zipper"></i> Salvar Projeto Completo (ZIP)
             </button>
-
             <div style="text-align: right; margin-top: 15px;">
                 <button class="btn btn-secondary" onclick="toggleModal('export-modal')">Cancelar</button>
             </div>
         </div>
     </div>
 
-    <!-- Modal de Login / GitHub -->
     <div class="modal-overlay" id="auth-modal">
         <div class="modal-box">
             <h3 id="auth-title"><i class="fa-solid fa-user-lock"></i> Contas & GitHub</h3>
-            
             <div style="margin-bottom: 15px; border-bottom: 1px solid #444; padding-bottom: 12px;">
                 <label id="lbl-google" style="font-weight: bold; color: #fff; margin-bottom: 6px;">Conta Google:</label>
                 <div id="google-status" style="font-size: 12px; margin-bottom: 8px; color: #aaa;">Não conectado</div>
                 <button class="btn btn-google" style="width: 100%; justify-content: center;" onclick="loginGoogle()"><i class="fa-brands fa-google"></i> <span id="txt-btn-google">Entrar com Google</span></button>
             </div>
-
             <div>
                 <label id="lbl-github" style="font-weight: bold; color: #fff; margin-bottom: 6px;">Sincronizar com GitHub:</label>
                 <p id="github-helper" style="font-size: 11px; color: #888; margin-bottom: 6px;">Cole seu Token (PAT), Usuário e Repositório:</p>
                 <input type="password" id="github-token" placeholder="Token (ghp_...)">
                 <input type="text" id="github-user" placeholder="Usuário (ex: midorya-sam)">
                 <input type="text" id="github-repo" placeholder="Repositório (ex: meu-projeto)">
-                
                 <div style="display:flex; gap:8px;">
                     <button class="btn btn-github" style="flex:1; justify-content: center;" onclick="githubPull()"><i class="fa-solid fa-cloud-arrow-down"></i> <span id="txt-gh-pull">Baixar</span></button>
                     <button class="btn btn-success" style="flex:1; justify-content: center;" onclick="githubPush()"><i class="fa-solid fa-cloud-arrow-up"></i> <span id="txt-gh-push">Salvar Commit</span></button>
                 </div>
             </div>
-
             <div style="text-align: right; margin-top: 15px;">
                 <button class="btn btn-secondary" onclick="toggleModal('auth-modal')"><span id="txt-close">Fechar</span></button>
             </div>
         </div>
     </div>
 
-    <!-- Modal de Localizar e Substituir -->
     <div class="modal-overlay" id="search-modal">
         <div class="modal-box">
             <h3 id="search-title"><i class="fa-solid fa-magnifying-glass"></i> Localizar e Substituir</h3>
@@ -293,23 +286,19 @@
         </div>
     </div>
 
-    <!-- Modal de Configurações -->
     <div class="modal-overlay" id="settings-modal">
         <div class="modal-box">
             <h3 id="settings-title"><i class="fa-solid fa-gear" style="color: #007acc;"></i> Configurações</h3>
-            
             <label id="lbl-lang">Idioma / Language:</label>
             <select id="setting-language" onchange="changeLanguage()">
                 <option value="pt" selected>Português (PT)</option>
                 <option value="en">English (EN)</option>
             </select>
-
             <label id="lbl-theme">Tema da Interface:</label>
             <select id="setting-theme" onchange="changeTheme()">
                 <option value="dark">Escuro (Dracula)</option>
                 <option value="light">Claro (Light)</option>
             </select>
-
             <label id="lbl-fontsize">Tamanho da Fonte:</label>
             <select id="setting-fontsize" onchange="changeFontSize()">
                 <option value="12px">12px</option>
@@ -317,13 +306,11 @@
                 <option value="16px">16px</option>
                 <option value="18px">18px</option>
             </select>
-
             <label id="lbl-wrap">Quebra de Linha (Word Wrap):</label>
             <select id="setting-wrap" onchange="changeWordWrap()">
                 <option value="false">Desligado</option>
                 <option value="true">Ligado</option>
             </select>
-
             <div style="text-align: right; margin-top: 10px;">
                 <button class="btn" onclick="toggleModal('settings-modal')"><span id="txt-close-3">Fechar</span></button>
             </div>
@@ -342,8 +329,8 @@
         const i18n = {
             pt: {
                 explorer: "Explorador", preview: "Pré-visualização", console: "Console", newtab: "Nova Aba",
-                importTitle: "Importar do Celular", importDesc: "Escolha como deseja importar seus arquivos salvos no iPhone:",
-                btnFiles: "Importar Arquivos Soltos ou ZIP", btnFolder: "Importar Pasta Completa", cancel: "Cancelar",
+                importTitle: "Importar do Celular", importDesc: "Escolha como deseja importar seus arquivos (códigos, 3D .glb, imagens ou ZIP):",
+                btnFiles: "Importar Arquivos (.glb, .zip, etc)", btnFolder: "Importar Pasta Completa", cancel: "Cancelar",
                 authTitle: "Contas & GitHub", lblGoogle: "Conta Google:", btnGoogle: "Entrar com Google", notConnected: "Não conectado",
                 lblGithub: "Sincronizar com GitHub:", ghHelper: "Cole seu Token (PAT), Usuário e Repositório:",
                 pull: "Baixar", push: "Salvar Commit", close: "Fechar",
@@ -353,8 +340,8 @@
             },
             en: {
                 explorer: "Explorer", preview: "Preview", console: "Console", newtab: "New Tab",
-                importTitle: "Import from Phone", importDesc: "Choose how to import your files saved on iPhone:",
-                btnFiles: "Import Loose Files or ZIP", btnFolder: "Import Full Folder", cancel: "Cancel",
+                importTitle: "Import from Phone", importDesc: "Choose how to import your files (code, 3D .glb, images, ZIP):",
+                btnFiles: "Import Files (.glb, .zip, etc)", btnFolder: "Import Full Folder", cancel: "Cancel",
                 authTitle: "Accounts & GitHub", lblGoogle: "Google Account:", btnGoogle: "Sign in with Google", notConnected: "Not connected",
                 lblGithub: "Sync with GitHub:", ghHelper: "Paste your Token (PAT), User and Repository:",
                 pull: "Pull", push: "Save Commit", close: "Close",
@@ -399,10 +386,9 @@
         }
 
         let files = JSON.parse(localStorage.getItem('kgcode_files')) || {
-            'index.html': { name: 'index.html', language: 'htmlmixed', content: '<!DOCTYPE html>\n<html>\n<head>\n  <link rel="stylesheet" href="style.css">\n</head>\n<body>\n  <h1>KG Code no iPhone/Chrome!</h1>\n  <button onclick="saudacao()">Testar JS</button>\n  <script src="script.js"><\/script>\n</body>\n</html>' },
-            'style.css': { name: 'style.css', language: 'css', content: 'body {\n  font-family: sans-serif;\n  text-align: center;\n  padding-top: 40px;\n}\nbutton {\n  padding: 10px 20px;\n  background: #007acc;\n  color: white;\n  border: none;\n  border-radius: 5px;\n}' },
-            'script.js': { name: 'script.js', language: 'javascript', content: 'function saudacao() {\n  alert("Tudo a funcionar perfeitamente!");\n  console.log("Executado com sucesso.");\n}' },
-            'main.py': { name: 'main.py', language: 'python', content: 'print("Python rodando via WebAssembly!")\nfor i in range(3):\n    print(f"Passo {i+1}")' }
+            'index.html': { name: 'index.html', language: 'htmlmixed', type: 'text', content: '<!DOCTYPE html>\n<html>\n<head>\n  <link rel="stylesheet" href="style.css">\n</head>\n<body>\n  <h1>KG Code 3D & Multiplayer!</h1>\n  <button onclick="saudacao()">Testar JS</button>\n  <script src="script.js"><\/script>\n</body>\n</html>' },
+            'style.css': { name: 'style.css', language: 'css', type: 'text', content: 'body {\n  font-family: sans-serif;\n  text-align: center;\n  padding-top: 40px;\n}\nbutton {\n  padding: 10px 20px;\n  background: #007acc;\n  color: white;\n  border: none;\n  border-radius: 5px;\n}' },
+            'script.js': { name: 'script.js', language: 'javascript', type: 'text', content: 'function saudacao() {\n  alert("Suporte a pastas e ficheiros ativo!");\n  console.log("Executado com sucesso.");\n}' }
         };
 
         let currentFile = 'index.html';
@@ -420,7 +406,7 @@
             });
 
             editor.on("change", function() {
-                if (currentFile && files[currentFile]) {
+                if (currentFile && files[currentFile] && files[currentFile].type === 'text') {
                     files[currentFile].content = editor.getValue();
                     saveLocal();
                     const t = i18n[currentLang];
@@ -482,6 +468,7 @@
                 if(fileName.endsWith('.css')) icon = 'fa-css3-alt';
                 if(fileName.endsWith('.js')) icon = 'fa-js';
                 if(fileName.endsWith('.py')) icon = 'fa-brands fa-python';
+                if(fileName.endsWith('.glb') || fileName.endsWith('.gltf')) icon = 'fa-cube';
 
                 li.innerHTML = `
                     <span><i class="${icon}"></i> ${fileName}</span>
@@ -510,9 +497,21 @@
         function openFile(fileName) {
             currentFile = fileName;
             const file = files[fileName];
-            editor.setOption("mode", file.language);
-            editor.setValue(file.content);
-            document.getElementById('file-type-badge').innerText = file.language.toUpperCase();
+            const viewer3d = document.getElementById('viewer-3d-container');
+            const editorWrapper = document.querySelector('.CodeMirror').parentElement;
+
+            if (fileName.endsWith('.glb') || fileName.endsWith('.gltf')) {
+                viewer3d.style.display = 'flex';
+                editorWrapper.style.display = 'none';
+                document.getElementById('model-3d-preview').setAttribute('src', file.content);
+                document.getElementById('file-type-badge').innerText = 'MODELO 3D';
+            } else {
+                viewer3d.style.display = 'none';
+                editorWrapper.style.display = 'block';
+                editor.setOption("mode", file.language || 'text');
+                editor.setValue(file.content || '');
+                document.getElementById('file-type-badge').innerText = (file.language || 'TEXT').toUpperCase();
+            }
             renderFileList();
         }
 
@@ -522,15 +521,17 @@
         }
 
         function addNewFile() {
-            const name = prompt("Nome do Ficheiro / File name (ex: index.html, style.css, script.js):");
+            const name = prompt("Nome do Ficheiro / File name (ex: index.html, modelo.glb):");
             if (!name) return;
 
             let lang = 'htmlmixed';
+            let type = 'text';
             if (name.endsWith('.css')) lang = 'css';
             if (name.endsWith('.js')) lang = 'javascript';
             if (name.endsWith('.py')) lang = 'python';
+            if (name.endsWith('.glb') || name.endsWith('.gltf')) type = 'binary';
 
-            files[name] = { name: name, language: lang, content: '' };
+            files[name] = { name: name, language: lang, type: type, content: '' };
             saveLocal();
             openFile(name);
         }
@@ -576,11 +577,22 @@
 
         function exportSingleFile() {
             if (!currentFile || !files[currentFile]) return;
-            const content = files[currentFile].content;
-            const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+            const file = files[currentFile];
+            let blob;
+            if (file.type === 'binary') {
+                const arr = file.content.split(',');
+                const mime = arr[0].match(/:(.*?);/)[1];
+                const bstr = atob(arr[1]);
+                let n = bstr.length;
+                const u8arr = new Uint8Array(n);
+                while(n--) { u8arr[n] = bstr.charCodeAt(n); }
+                blob = new Blob([u8arr], {type: mime});
+            } else {
+                blob = new Blob([file.content], { type: 'text/plain;charset=utf-8' });
+            }
             const a = document.createElement("a");
             a.href = URL.createObjectURL(blob);
-            a.download = currentFile;
+            a.download = currentFile.split('/').pop();
             a.click();
             toggleModal('export-modal');
         }
@@ -588,7 +600,13 @@
         function exportProjectZip() {
             const zip = new JSZip();
             Object.keys(files).forEach(filename => {
-                zip.file(filename, files[filename].content);
+                const file = files[filename];
+                if (file.type === 'binary') {
+                    const arr = file.content.split(',');
+                    zip.file(filename, arr[1], {base64: true});
+                } else {
+                    zip.file(filename, file.content);
+                }
             });
             zip.generateAsync({type:"blob"}).then(function(content) {
                 const a = document.createElement("a");
@@ -635,6 +653,7 @@
         }
 
         function formatCode() {
+            if (files[currentFile] && files[currentFile].type === 'binary') return;
             const totalLines = editor.lineCount();
             for (let i = 0; i < totalLines; i++) {
                 editor.indentLine(i);
@@ -643,6 +662,7 @@
         }
 
         function performReplace() {
+            if (files[currentFile] && files[currentFile].type === 'binary') return;
             const findStr = document.getElementById('find-text').value;
             const replaceStr = document.getElementById('replace-text').value;
             if (!findStr) return;
@@ -690,7 +710,7 @@
 
             try {
                 for (let fileName of Object.keys(files)) {
-                    const content = files[fileName].content;
+                    const file = files[fileName];
                     const url = `https://api.github.com/repos/${user}/${repo}/contents/${fileName}`;
                     
                     let sha = "";
@@ -706,6 +726,13 @@
                         sha = data.sha;
                     }
 
+                    let base64Content = '';
+                    if (file.type === 'binary') {
+                        base64Content = file.content.split(',')[1];
+                    } else {
+                        base64Content = utf8ToBase64(file.content);
+                    }
+
                     const res = await fetch(url, {
                         method: "PUT",
                         headers: {
@@ -715,7 +742,7 @@
                         },
                         body: JSON.stringify({
                             message: commitMsg,
-                            content: utf8ToBase64(content),
+                            content: base64Content,
                             sha: sha || undefined
                         })
                     });
@@ -758,14 +785,26 @@
                 for (let item of data) {
                     if (item.type === "file") {
                         const fileRes = await fetch(item.download_url);
-                        const text = await fileRes.text();
                         
-                        let lang = 'htmlmixed';
-                        if (item.name.endsWith('.css')) lang = 'css';
-                        if (item.name.endsWith('.js')) lang = 'javascript';
-                        if (item.name.endsWith('.py')) lang = 'python';
+                        if (item.name.endsWith('.glb') || item.name.endsWith('.gltf') || item.name.endsWith('.png') || item.name.endsWith('.jpg')) {
+                            const blob = await fileRes.blob();
+                            const reader = new FileReader();
+                            await new Promise((resolve) => {
+                                reader.onload = (e) => {
+                                    files[item.name] = { name: item.name, type: 'binary', content: e.target.result };
+                                    resolve();
+                                };
+                                reader.readAsDataURL(blob);
+                            });
+                        } else {
+                            const text = await fileRes.text();
+                            let lang = 'htmlmixed';
+                            if (item.name.endsWith('.css')) lang = 'css';
+                            if (item.name.endsWith('.js')) lang = 'javascript';
+                            if (item.name.endsWith('.py')) lang = 'python';
 
-                        files[item.name] = { name: item.name, language: lang, content: text };
+                            files[item.name] = { name: item.name, language: lang, type: 'text', content: text };
+                        }
                     }
                 }
                 saveLocal();
@@ -778,11 +817,23 @@
             }
         }
 
+        // MOTOR DE BUSCA INTELIGENTE DE FICHEIROS DENTRO DE PASTAS
         function generateFullHtml() {
-            let htmlContent = files['index.html'] ? files['index.html'].content : '';
-            if (files['style.css']) {
-                htmlContent = htmlContent.replace('</head>', `<style>${files['style.css'].content}</style></head>`);
+            // Procura pelo index.html mesmo que esteja dentro de uma pasta (ex: simulacao_votacao_mobile/index.html)
+            let htmlKey = Object.keys(files).find(k => k === 'index.html' || k.endsWith('/index.html'));
+            if (!htmlKey) {
+                htmlKey = Object.keys(files).find(k => k.endsWith('.html'));
             }
+
+            let htmlContent = (htmlKey && files[htmlKey].type === 'text') ? files[htmlKey].content : '<h1>index.html não encontrado</h1>';
+
+            // Injeta automaticamente todas as folhas de estilo (.css) encontradas
+            Object.keys(files).forEach(k => {
+                if (k.endsWith('.css') && files[k].type === 'text') {
+                    htmlContent = htmlContent.replace('</head>', `<style>${files[k].content}</style></head>`);
+                }
+            });
+
             const consoleInterceptor = `
                 <script>
                     const _log = console.log;
@@ -796,9 +847,14 @@
                 <\/script>
             `;
             htmlContent = htmlContent.replace('<head>', '<head>' + consoleInterceptor);
-            if (files['script.js']) {
-                htmlContent = htmlContent.replace('</body>', `<script>${files['script.js'].content}<\/script></body>`);
-            }
+
+            // Injeta automaticamente todos os scripts (.js) encontrados
+            Object.keys(files).forEach(k => {
+                if (k.endsWith('.js') && files[k].type === 'text') {
+                    htmlContent = htmlContent.replace('</body>', `<script>${files[k].content}<\/script></body>`);
+                }
+            });
+
             return htmlContent;
         }
 
@@ -825,7 +881,6 @@
             iframe.srcdoc = generateFullHtml();
         }
 
-        // TELA CHEIA DENTRO DA PRÓPRIA PÁGINA (Funciona 100% para Jogos/Multiplayer no iOS)
         function openFullscreenPreview() {
             const modal = document.getElementById('fullscreen-preview-modal');
             const iframe = document.getElementById('fullscreen-preview-frame');
@@ -840,7 +895,6 @@
             modal.style.display = 'none';
         }
 
-        // NOVA ABA DIRETA SEM BLOB (Evita ERR_FAILED)
         function openNewTabDirect() {
             const newWindow = window.open('', '_blank');
             if (newWindow) {
@@ -878,7 +932,7 @@
                                         if (relativePath.endsWith('.css')) lang = 'css';
                                         if (relativePath.endsWith('.js')) lang = 'javascript';
                                         if (relativePath.endsWith('.py')) lang = 'python';
-                                        files[relativePath] = { name: relativePath, language: lang, content: content };
+                                        files[relativePath] = { name: relativePath, language: lang, type: 'text', content: content };
                                         saveLocal();
                                         renderFileList();
                                     });
@@ -888,6 +942,16 @@
                         });
                     };
                     reader.readAsArrayBuffer(file);
+                } else if (file.name.endsWith('.glb') || file.name.endsWith('.gltf') || file.name.endsWith('.png') || file.name.endsWith('.jpg')) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        let name = file.webkitRelativePath || file.name;
+                        files[name] = { name: name, type: 'binary', content: e.target.result };
+                        saveLocal();
+                        renderFileList();
+                        openFile(name);
+                    };
+                    reader.readAsDataURL(file);
                 } else {
                     const reader = new FileReader();
                     reader.onload = function(e) {
@@ -896,7 +960,7 @@
                         if (name.endsWith('.css')) lang = 'css';
                         if (name.endsWith('.js')) lang = 'javascript';
                         if (name.endsWith('.py')) lang = 'python';
-                        files[name] = { name: name, language: lang, content: e.target.result };
+                        files[name] = { name: name, language: lang, type: 'text', content: e.target.result };
                         saveLocal();
                         renderFileList();
                         openFile(name);
