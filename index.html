@@ -80,8 +80,9 @@
         .tab { padding: 8px 16px; font-size: 12px; background: #2d2d2d; color: #969696; border-right: 1px solid #252526; display: flex; align-items: center; gap: 8px; cursor: pointer; white-space: nowrap; }
         .tab.active { background: #1e1e1e; color: #ffffff; border-top: 2px solid #007acc; }
         
-        .quick-symbols { display: flex; background: #2d2d2d; padding: 4px; gap: 4px; overflow-x: auto; border-bottom: 1px solid #1e1e1e; }
-        .symbol-btn { background: #3c3c3c; color: #fff; border: none; padding: 4px 10px; border-radius: 3px; font-size: 13px; font-family: monospace; cursor: pointer; }
+        .quick-symbols { display: flex; background: #2d2d2d; padding: 4px; gap: 4px; overflow-x: auto; border-bottom: 1px solid #1e1e1e; justify-content: space-between; align-items: center; }
+        .symbol-group { display: flex; gap: 4px; overflow-x: auto; }
+        .symbol-btn { background: #3c3c3c; color: #fff; border: none; padding: 4px 10px; border-radius: 3px; font-size: 13px; font-family: monospace; cursor: pointer; white-space: nowrap; }
         .symbol-btn:active { background: #007acc; }
 
         .CodeMirror { height: 100% !important; font-family: 'Courier New', Courier, monospace; font-size: 14px; }
@@ -102,6 +103,23 @@
         #fullscreen-preview-modal { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #fff; z-index: 2000; flex-direction: column; }
         #fullscreen-preview-modal header { background: #252526; color: white; height: 40px; display: flex; justify-content: space-between; align-items: center; padding: 0 10px; }
         #fullscreen-preview-frame { flex: 1; width: 100%; border: none; background: white; }
+
+        /* Estilo para Tela Cheia do Editor */
+        body.editor-fullscreen #sidebar,
+        body.editor-fullscreen header,
+        body.editor-fullscreen #bottom-panel,
+        body.editor-fullscreen nav,
+        body.editor-fullscreen .status-bar {
+            display: none !important;
+        }
+        body.editor-fullscreen #editor-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 3000;
+        }
 
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 100; justify-content: center; align-items: center; }
         .modal-box { background: #252526; padding: 20px; border-radius: 6px; width: 90%; max-width: 400px; border: 1px solid #333; color: #ccc; }
@@ -124,11 +142,12 @@
             <i class="fa-solid fa-code"></i> KG Code
         </div>
         <div class="actions">
-            <button class="btn btn-secondary" onclick="toggleModal('import-modal')" title="Importar do Celular"><i class="fa-solid fa-folder-open"></i></button>
-            <button class="btn btn-secondary" onclick="toggleModal('export-modal')" title="Exportar para o Celular"><i class="fa-solid fa-file-export"></i></button>
+            <button class="btn btn-secondary" onclick="toggleModal('import-modal')" title="Importar"><i class="fa-solid fa-folder-open"></i></button>
+            <button class="btn btn-secondary" onclick="toggleModal('export-modal')" title="Exportar"><i class="fa-solid fa-file-export"></i></button>
             <button class="btn btn-secondary" onclick="formatCode()" title="Formatar Código"><i class="fa-solid fa-wand-magic-sparkles"></i></button>
+            <button class="btn btn-secondary" onclick="toggleEditorFullscreen()" title="Tela Cheia Editor"><i class="fa-solid fa-expand" id="editor-fs-icon"></i></button>
             <button class="btn btn-secondary" onclick="toggleModal('search-modal')" title="Localizar"><i class="fa-solid fa-magnifying-glass"></i></button>
-            <button class="btn btn-secondary" onclick="toggleModal('auth-modal')" title="Contas / Login"><i class="fa-solid fa-user-circle"></i></button>
+            <button class="btn btn-secondary" onclick="toggleModal('auth-modal')" title="Login"><i class="fa-solid fa-user-circle"></i></button>
             <button class="btn btn-success" onclick="runProject()" title="Executar"><i class="fa-solid fa-play"></i></button>
         </div>
     </header>
@@ -155,20 +174,26 @@
             <div class="tabs-header" id="tabs-header"></div>
             
             <div class="quick-symbols">
-                <button class="symbol-btn" onclick="insertSymbol('<')">&lt;</button>
-                <button class="symbol-btn" onclick="insertSymbol('>')">&gt;</button>
-                <button class="symbol-btn" onclick="insertSymbol('{')">{</button>
-                <button class="symbol-btn" onclick="insertSymbol('}')">}</button>
-                <button class="symbol-btn" onclick="insertSymbol('[')">[</button>
-                <button class="symbol-btn" onclick="insertSymbol(']')">]</button>
-                <button class="symbol-btn" onclick="insertSymbol('(')">(</button>
-                <button class="symbol-btn" onclick="insertSymbol(')')">)</button>
-                <button class="symbol-btn" onclick="insertSymbol('=')">=</button>
-                <button class="symbol-btn" onclick="insertSymbol(';')">;</button>
-                <button class="symbol-btn" onclick="insertSymbol('&quot;')">"</button>
-                <button class="symbol-btn" onclick="insertSymbol('\'')">'</button>
-                <button class="symbol-btn" onclick="insertSymbol('+')">+</button>
-                <button class="symbol-btn" onclick="insertSymbol('-')">-</button>
+                <div class="symbol-group">
+                    <button class="symbol-btn" onclick="insertSymbol('<')">&lt;</button>
+                    <button class="symbol-btn" onclick="insertSymbol('>')">&gt;</button>
+                    <button class="symbol-btn" onclick="insertSymbol('{')">{</button>
+                    <button class="symbol-btn" onclick="insertSymbol('}')">}</button>
+                    <button class="symbol-btn" onclick="insertSymbol('[')">[</button>
+                    <button class="symbol-btn" onclick="insertSymbol(']')">]</button>
+                    <button class="symbol-btn" onclick="insertSymbol('(')">(</button>
+                    <button class="symbol-btn" onclick="insertSymbol(')')">)</button>
+                    <button class="symbol-btn" onclick="insertSymbol('=')">=</button>
+                    <button class="symbol-btn" onclick="insertSymbol(';')">;</button>
+                    <button class="symbol-btn" onclick="insertSymbol('&quot;')">"</button>
+                    <button class="symbol-btn" onclick="insertSymbol('\'')">'</button>
+                    <button class="symbol-btn" onclick="insertSymbol('+')">+</button>
+                    <button class="symbol-btn" onclick="insertSymbol('-')">-</button>
+                </div>
+                <div>
+                    <button class="symbol-btn" style="background:#0e639c;" onclick="selectAllCode()"><i class="fa-solid fa-check-double"></i> Selecionar Tudo</button>
+                    <button class="symbol-btn" style="background:#3c3c3c;" onclick="toggleEditorFullscreen()"><i class="fa-solid fa-compress"></i> Sair Tela Cheia</button>
+                </div>
             </div>
 
             <div id="viewer-3d-container">
@@ -520,6 +545,22 @@
             editor.focus();
         }
 
+        function selectAllCode() {
+            editor.execCommand("selectAll");
+            editor.focus();
+        }
+
+        function toggleEditorFullscreen() {
+            document.body.classList.toggle('editor-fullscreen');
+            const icon = document.getElementById('editor-fs-icon');
+            if (document.body.classList.contains('editor-fullscreen')) {
+                icon.className = "fa-solid fa-compress";
+            } else {
+                icon.className = "fa-solid fa-expand";
+            }
+            editor.refresh();
+        }
+
         function addNewFile() {
             const name = prompt("Nome do Ficheiro / File name (ex: index.html, modelo.glb):");
             if (!name) return;
@@ -817,9 +858,7 @@
             }
         }
 
-        // MOTOR DE BUSCA INTELIGENTE DE FICHEIROS DENTRO DE PASTAS
         function generateFullHtml() {
-            // Procura pelo index.html mesmo que esteja dentro de uma pasta (ex: simulacao_votacao_mobile/index.html)
             let htmlKey = Object.keys(files).find(k => k === 'index.html' || k.endsWith('/index.html'));
             if (!htmlKey) {
                 htmlKey = Object.keys(files).find(k => k.endsWith('.html'));
@@ -827,7 +866,6 @@
 
             let htmlContent = (htmlKey && files[htmlKey].type === 'text') ? files[htmlKey].content : '<h1>index.html não encontrado</h1>';
 
-            // Injeta automaticamente todas as folhas de estilo (.css) encontradas
             Object.keys(files).forEach(k => {
                 if (k.endsWith('.css') && files[k].type === 'text') {
                     htmlContent = htmlContent.replace('</head>', `<style>${files[k].content}</style></head>`);
@@ -848,7 +886,6 @@
             `;
             htmlContent = htmlContent.replace('<head>', '<head>' + consoleInterceptor);
 
-            // Injeta automaticamente todos os scripts (.js) encontrados
             Object.keys(files).forEach(k => {
                 if (k.endsWith('.js') && files[k].type === 'text') {
                     htmlContent = htmlContent.replace('</body>', `<script>${files[k].content}<\/script></body>`);
